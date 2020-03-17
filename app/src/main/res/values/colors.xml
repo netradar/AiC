@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#0daf9d</color>
+    <color name="colorPrimaryLight">#FFFFFF</color>
+    <color name="colorAccent">#FF4081</color>
+    <color name="serviceText">#FFFFFF</color>
+    <color name="baseDialogHeadlineColor">#FFFFFF</color>
+    <color name="serviceOtherText">#43d448</color>
+    <color name="colorGreenRound">#26B8BB</color>
+    <color name="contactsHeadlineBG">#7c7c7c</color>
+    <color name="disable">#9aa1a1</color>
+    <color name="cancel">#808181</color>
+    <color name="toolsColor">#797a7a</color>
+    <color name="settingsColor">#797a7a</color>
+    <color name="sourcelistHeadlineBG">#018173</color>
+    <color name="sourcelistBG">#ebebeb</color>
+    <color name="sourcelistborder">#dfdfdf</color>
+    <color name="sourceItemSelectedColor">#ffffff</color>
+    <color name="settingsItemSelectedColor">#ffffff</color>
+    <color name="settingsItemSelectedBGColor">#7c7c7c</color>
+    <color name="dialogColor">#797a7a</color>
+    <color name="dialogGreyHeader">#7c7c7c</color>
+    <color name="dialogItemSelectedColor">#ffffff</color>
+    <color name="dialogItemSelectedBGColor">#7c7c7c</color>
+    <color name="continuousGrey">#707070</color>
+    <color name="settingsSubDialogLineColor">#ebebeb</color>
+</resources>

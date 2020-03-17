@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="panel_paddingTop">100dp</dimen>
+    <dimen name="panel_background_top">50dp</dimen>
+    <dimen name="service_margin">20dp</dimen>
+    <dimen name="service_controls_width">250dp</dimen>
+    <dimen name="service_controls_padding">10dp</dimen>
+    <dimen name="login_controls_padding">10dp</dimen>
+    <dimen name="tools_controls_padding">10dp</dimen>
+    <dimen name="base_dialog_padding">10dp</dimen>
+    <dimen name="sourcelist_headline_padding">10dp</dimen>
+    <dimen name="source_item_padding">5dp</dimen>
+    <dimen name="settings_controls_padding">10dp</dimen>
+</resources>
