@@ -5,6 +5,7 @@
     android:layout_height="match_parent"
     tools:context=".ConnectManager"
     android:background="@drawable/main_background"
+
     android:paddingTop="@dimen/panel_paddingTop"
     >
 
@@ -32,7 +33,8 @@
             android:paddingTop="@dimen/service_controls_padding"
             android:paddingBottom="@dimen/service_controls_padding"
             android:text="@string/zc"
-            android:textColor="@drawable/service_white_control_color" />
+            android:textColor="@drawable/service_white_control_color"
+            android:onClick="onClick"/>
 
         <Button
             android:id="@+id/sip"
@@ -44,7 +46,8 @@
             android:paddingTop="@dimen/service_controls_padding"
             android:paddingBottom="@dimen/service_controls_padding"
             android:text="@string/sip"
-            android:textColor="@drawable/service_white_control_color" />
+            android:textColor="@drawable/service_white_control_color"
+            android:onClick="onClick"/>
 
         <Button
             android:id="@+id/ip"
@@ -56,7 +59,8 @@
             android:paddingTop="@dimen/service_controls_padding"
             android:paddingBottom="@dimen/service_controls_padding"
             android:text="@string/ip"
-            android:textColor="@drawable/service_white_control_color" />
+            android:textColor="@drawable/service_white_control_color"
+            android:onClick="onClick"/>
     </LinearLayout>
 
 

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:fitsSystemWindows="false"
+    android:background="@color/baseDialogHeadlineColor"
+    >
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+    </ScrollView>
+    <TextView
+        android:id="@+id/sendBack"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:padding="@dimen/tools_controls_padding"
+        android:drawablePadding="@dimen/tools_controls_padding"
+        android:background="@drawable/dialog_item_bg"
+        android:textColor="@drawable/dialog_item_color"
+        android:focusable="true"
+        android:clickable="true"
+        android:text="发送Back键"
+        android:onClick="onMenuClick"
+        />
+    <TextView
+        android:id="@+id/sendHome"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+
+        android:padding="@dimen/tools_controls_padding"
+        android:drawablePadding="@dimen/tools_controls_padding"
+        android:background="@drawable/dialog_item_bg"
+        android:textColor="@drawable/dialog_item_color"
+        android:focusable="true"
+        android:clickable="true"
+        android:text="发送Home键"
+        android:onClick="onMenuClick"
+        />
+    <TextView
+        android:id="@+id/sendMenu"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+
+        android:padding="@dimen/tools_controls_padding"
+        android:drawablePadding="@dimen/tools_controls_padding"
+        android:background="@drawable/dialog_item_bg"
+        android:textColor="@drawable/dialog_item_color"
+        android:focusable="true"
+        android:clickable="true"
+        android:text="发送Menu键"
+        android:onClick="onMenuClick"
+        />
+    <TextView
+        android:id="@+id/sendDisconnect"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+
+        android:padding="@dimen/tools_controls_padding"
+        android:drawablePadding="@dimen/tools_controls_padding"
+        android:background="@drawable/dialog_item_bg"
+        android:textColor="@drawable/dialog_item_color"
+        android:focusable="true"
+        android:clickable="true"
+        android:text="断开连接"
+        android:onClick="onMenuClick"
+        />
+
+</LinearLayout>
+

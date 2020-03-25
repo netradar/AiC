@@ -9,10 +9,17 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 
+import static androidx.core.content.ContextCompat.getSystemService;
 
 
 public class RenderBoard extends Activity{
@@ -23,10 +30,12 @@ public class RenderBoard extends Activity{
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
+        Log.d("lichao","renderboard onCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.render_main);
 
-        mainRender = (MainRender)findViewById(R.id.main_background1);
+        mainRender = (MainRender) findViewById(R.id.main_background1);
 
         mainRender.setNet(getIntent().getStringExtra("ipaddr"),getIntent().getIntExtra("port",-1));
 
@@ -49,8 +58,8 @@ public class RenderBoard extends Activity{
                 {
                     if(intent.getBooleanExtra("isClose", false))
                     {
-                            mainRender.releaseNetwork();
-                            finish();
+                          //  mainRender.releaseNetwork();
+                         //   finish();
                     }
                     if(intent.getBooleanExtra("networkerr", false))
                     {
@@ -65,36 +74,67 @@ public class RenderBoard extends Activity{
         ifilter.addAction("render.message");
         registerReceiver(bdReceiver,ifilter);
 
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.showSoftInput(mainRender,InputMethodManager.SHOW_FORCED);
 
-        final SharedPreferences preferences = getApplicationContext().getSharedPreferences("setting", MODE_PRIVATE);
 
-        /*String contacts = settings.getString("contacts","[]");
-        try {
-            JSONArray array = new JSONArray(contacts);
-            JSONObject object;
-            for (int i = 0; i < array.length(); i++) {
-                object = array.getJSONObject(i);
-                Log.e(TAG,"contacts address:" + object.getString("address") + " note:" + object.getString("note"));
-            }
 
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }*/
 
 
 
 
     }
 
+    @Override
+    protected void onPause() {
+        Log.d("lichao","renderboard onPause");
+        super.onPause();
+    }
+
+    @Override
+    protected void onStop() {
+        Log.d("lichao","renderboard onStop");
+        super.onStop();
+    }
 
     @Override
     public void onBackPressed()
+
     {
-        mainRender.disconnect();
+        Intent intent = new Intent();
+        intent.setClass(RenderBoard.this, RemoteControl.class);
+
+        startActivityForResult(intent,0);
+      //  mainRender.disconnect();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if(requestCode==0)
+        {
+            switch (resultCode)
+            {
+                case 0:
+                    mainRender.sendBack();
+                    break;
+                case 1:
+                    mainRender.sendHome();
+                    break;
+                case 2:
+                    mainRender.sendMenu();
+                    break;
+                case 3:
+                    mainRender.disconnect();
+                    finish();
+                    break;
+            }
+        }
+        super.onActivityResult(requestCode, resultCode, data);
     }
 
     @Override
     protected void onDestroy() {
+        Log.d("lichao","renderboard destroyed");
         unregisterReceiver(bdReceiver);
         super.onDestroy();
 
@@ -103,6 +143,6 @@ public class RenderBoard extends Activity{
     {
         final Toast toast = Toast.makeText(RenderBoard.this, "网络连接失败", Toast.LENGTH_SHORT);
         toast.show();
-        this.onBackPressed();
+        finish();
     }
 }

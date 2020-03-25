@@ -1,35 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.vanxum.Aic">
-    <uses-feature android:glEsVersion="0x00020000" android:required="true" />
-    <uses-permission android:name="android.permission.INTERNET"/>
+
+    <uses-feature
+        android:glEsVersion="0x00020000"
+        android:required="true" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:allowBackup="true"
-        android:usesCleartextTraffic="true"
-
-        android:sharedUserId="android.uid.system"
         android:icon="@drawable/logo"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
+        android:sharedUserId="android.uid.system"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme">
-        <activity android:name=".ConnectManager"
-            android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
+
+        android:usesCleartextTraffic="true">
+        <activity android:name=".RemoteControl"
+
+           android:theme="@style/MyDialogStyle"
+            ></activity>
+        <activity
+            android:name=".Ipconnect"
+            android:label="@string/title_activity_ipconnect"
+            android:screenOrientation="landscape"
+        android:theme="@style/AppTheme.NoActionBar"
+            />
+
+
+        <activity
+            android:name=".ConnectManager"
             android:screenOrientation="portrait"
-            >
+
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".RenderBoard"
-            android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
-            android:windowSoftInputMode="adjustNothing"
+        <activity
+            android:name=".RenderBoard"
             android:screenOrientation="landscape"
-            >
 
-        </activity>
+        android:theme="@style/AppTheme.NoActionBar"
+            android:windowSoftInputMode="adjustPan|stateHidden" />
     </application>
 
 </manifest>

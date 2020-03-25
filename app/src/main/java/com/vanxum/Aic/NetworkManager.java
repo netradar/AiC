@@ -8,7 +8,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -39,34 +41,21 @@ public class NetworkManager {
 		@Override
 		public void run() 
 		{
-
-			while(sendFlag)
+			MyInputEvent info;
+			while(true)
 			{
-
-				MyInputEvent info = new MyInputEvent();
-			//	synchronized (sendBuffer)
+				try
 				{
-
-					try {
-						info = sendBuffer.take();
-						if(!sendFlag)
-							break;
-						if(info!=null)
-							sendData(info);
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-
-
-
+					info = sendBuffer.take();
+					if(!sendFlag)
+						break;
+					if(info!=null)
+						sendData(info);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
 				}
 
-		//		Log.d("lichao","sendBuffer 5");
-
-				
-				
 			}
-
 			Log.d("lichao","sendMsg thread exit");
 		}
 			
@@ -80,46 +69,33 @@ public class NetworkManager {
 		@Override
 		public void run() 
 		{
-			
-			
-			
+
 				byte[] headLen = new byte[4];
 				int length = 0;
-				boolean isClose=false;
+				boolean isClose;
 				
 
-					isClose = socket.isClosed();
+				isClose = socket.isClosed();
 
-				//	Log.d("lichao","recv  date ");
-					
-					while(recvFlag&&!isClose&&!socket.isInputShutdown())
+				while(recvFlag&&!isClose&&!socket.isInputShutdown())
+				{
+
+					if(readData(headLen,4)==0)
 					{
-					//	Log.d("lichao","recv  date 1");
+						int dataLen = byteToInt(headLen);
 
-						if(readData(headLen,4)==0)
+						byte[] data = new byte[dataLen];
+						Arrays.fill(data, (byte) 0);
+						if(readData(data,dataLen)==0)
 						{
-							int dataLen = byteToInt(headLen);
-					//		Log.d("lichao","date len "+dataLen);
-							byte[] data = new byte[dataLen];
-							Arrays.fill(data, (byte) 0);
-							if(readData(data,dataLen)==0)
-							{
-							/*	Intent i=new Intent("render.message");
-								i.putExtra("isClose", false);
-								i.putExtra("buffer", data);
-								render.sendBroadcast(i);*/
-								render.mainRender.reportVideoData(data,dataLen);
-							}
+							render.mainRender.reportVideoData(data,dataLen);
 						}
-
-
-
-						
-						
 					}
 
+				}
 
-			Log.d("lichao","recv thread exit");
+
+			Log.d("lichao","recv video thread exit");
 
 		}
 			
@@ -133,56 +109,30 @@ public class NetworkManager {
 		public void run()
 		{
 			byte[] headLen = new byte[4];
-			int length = 0;
-			boolean isClose=false;
-
-
+			boolean isClose;
 			isClose = socketAudio.isClosed();
 
+		//	Log.d("lichao","recv audio thread start");
 
 			while(recvFlag&&!isClose&&!socketAudio.isInputShutdown())
 			{
 
-
 				if(readAudioData(headLen,4)==0)
 				{
+
 					int dataLen = byteToInt(headLen);
-						Log.d("lichao","audio date len "+dataLen);
+			//		Log.d("lichao","date len "+dataLen);
 					byte[] data = new byte[dataLen];
 					if(readAudioData(data,dataLen)==0)
 					{
-						Log.d("lichao","audio recv  date 1");
 						render.mainRender.reportAudioData(data,dataLen);
 					}
 				}
-
-
-
-
-
-				if (length > 0)
-				{
-					// act.onReceive(buffer);
-					      /*  Intent i=new Intent("car.bd.message");
-					        i.putExtra("isClose", false);
-							i.putExtra("buffer", buffer);
-							act.sendBroadcast(i);*/
-				}
-				else
-				{
-
-				}
-
-
 			}
 
+			Log.d("lichao","recv audio thread exit");
 
 
-			if(recvFlag)
-			{
-				closeAll();
-
-			}
 		}
 
 
@@ -197,7 +147,6 @@ public class NetworkManager {
 		while (offset < len) {
 
 			try {
-
 				ret = inputStream.read(buf, offset, len-offset);
 				if(ret<=0)
 					return -1;
@@ -215,7 +164,8 @@ public class NetworkManager {
 
 		int offset = 0;
 		int ret;
-		while (offset < len) {
+		while (offset < len)
+		{
 
 			try {
 
@@ -225,7 +175,7 @@ public class NetworkManager {
 				offset+=ret;
 
 			} catch (IOException e) {
-				e.printStackTrace();
+				return -1;
 			}
 
 		}
@@ -236,7 +186,7 @@ public class NetworkManager {
 
 
 		int t = 0;
-		int s1 = b[0],s2=b[1],s3=b[2],s4=b[3];
+
 		t = (b[0]&0xff)<<24;
 		t+= (b[1]&0xff)<<16;
 		t+= (b[2]&0xff)<<8;
@@ -248,9 +198,6 @@ public class NetworkManager {
 	{
 		render = render_;
 		isConnected = false;
-
-
-
 	}
 	public int connect(String ip,int port)
 	{
@@ -258,46 +205,50 @@ public class NetworkManager {
 		Log.d("lichao","ip is "+ip+" port is "+port);
 		try {
 			try {
-			//	socket = new Socket("172.16.200.236", 8181);
-			//	socketAudio = new Socket("172.16.200.236", 8182);
+				SocketAddress socketAddress1 = new InetSocketAddress(ip ,port);
+				SocketAddress socketAddress2 = new InetSocketAddress(ip ,port+1);
 
-				socket = new Socket(ip, port);
-				socketAudio = new Socket(ip, port+1);
-
-
+				socket = new Socket();
+				socketAudio = new Socket();
 				if(socket==null||socketAudio==null)
 				{
 					Log.d("lichao","socket error");
 					return -1;
 				}
+
+				socket.connect(socketAddress1,500);
+				socketAudio.connect(socketAddress2,500);
+
+
+
 			} catch (IOException e) {
 				e.printStackTrace();
 				Log.d("lichao",e.toString());
 				return -1;
 			}
 
-			socket.setSoTimeout(0);
-			
-			inputStream = socket.getInputStream();
-			inputStreamAudio = socketAudio.getInputStream();
+			Log.d("lichao","socket ok");
 
+			socket.setSoTimeout(0);
+			socketAudio.setSoTimeout(0);
+			inputStream = socket.getInputStream();
 			outputStream = socket.getOutputStream();
+
+			inputStreamAudio = socketAudio.getInputStream();
 
 			recvFlag = true;
 			sendFlag = true;
 
 			recvThread = new Thread(new RecvRunnable());
 			sendThread = new Thread(new SendRunnable());
-			recvAudioThread = new Thread((new RecvAudioRunnable()));
-			
 
-			
+			recvAudioThread = new Thread((new RecvAudioRunnable()));
+
 			recvThread.start();
 			sendThread.start();
 			recvAudioThread.start();
 			
-			//putMsg(setModeCommand);
-			//switchLed(0,0);
+
 			
 			
 		} catch (UnknownHostException e)
@@ -315,25 +266,22 @@ public class NetworkManager {
 	public void putMsg(MyInputEvent data)
 	{
 
-	//	synchronized (sendBuffer)
-		{
-
 			try {
 				sendBuffer.put(data);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-			//		sendBuffer.notify();
-		}
+
+
 	}
 	public int sendData(MyInputEvent event)
 	{
 		byte[] msg = new byte[8];
 
-		//Log.d("lichao2","send data ty is 1    "+event.type);
+
 		msg[0] = (byte)(event.type&0xff);
 		msg[1] = (byte)((event.type>>8)&0xff);
-	//	Log.d("lichao2","send data ty is  2   "+msg[0]);
+
 		msg[2] = (byte)(event.code&0xff);
 		msg[3] = (byte)((event.code>>8)&0xff);
 
@@ -344,13 +292,9 @@ public class NetworkManager {
 
 		if(!socket.isClosed()&&socket.isConnected())
 		{
-			try {
-		//		Log.d("lichao2","send data ");
+			try
+			{
 				outputStream.write(msg,0,8);
-			//	outputStream.flush();
-	//			socket.
-	//			Log.d("lichao","send data");
-			//	outputStream.flush();
 			} catch (UnsupportedEncodingException e) {
 				return -1;
 			} catch (IOException e) {
@@ -363,19 +307,23 @@ public class NetworkManager {
 	{
 		recvFlag = false;
 		sendFlag = false;
-		
+
 		isConnected = false;
 
 		if(recvThread!=null)
 			recvThread.interrupt();
+
+		if(recvAudioThread!=null)
+			recvAudioThread.interrupt();
+
 		if(sendThread!=null)
 		{
-			try {
-				sendBuffer.put(new MyInputEvent());
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
+            try {
+                sendBuffer.put(new MyInputEvent());
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
 		if(socket!=null&&socket.isConnected())
 		{
 			
@@ -385,11 +333,16 @@ public class NetworkManager {
 				
 			}
 		}
-		
-	//	 Intent i=new Intent("car.bd.message");
-	  //   i.putExtra("isClose", true);
-		
-	//	 act.sendBroadcast(i);
+		if(socketAudio!=null&&socketAudio.isConnected())
+		{
+
+			try {
+				socketAudio.close();
+			} catch (IOException e) {
+
+			}
+		}
+
 	}
 
 }

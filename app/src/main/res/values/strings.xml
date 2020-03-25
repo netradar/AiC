@@ -39,4 +39,5 @@
     <string name="auto">自动</string>
     <string name="opti_quality">优化质量</string>
     <string name="opti_speed">优化速度</string>
+    <string name="title_activity_ipconnect">Ipconnect</string>
 </resources>

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/main_background"
+    android:paddingTop="@dimen/panel_paddingTop"
+    >
+
+    <LinearLayout
+        android:id="@+id/peer_connection_frame"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+            >
+
+        <EditText
+            android:id="@+id/peer"
+            android:layout_width="@dimen/service_controls_width"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_margin="@dimen/service_margin"
+            android:background="@drawable/green_rounded"
+            android:drawableLeft="@drawable/account"
+            android:hint="@string/peer"
+            android:paddingLeft="@dimen/login_controls_padding"
+            android:paddingTop="@dimen/login_controls_padding"
+            android:paddingBottom="@dimen/login_controls_padding"
+            android:textColor="@color/serviceText"
+            android:textColorHint="@color/serviceText" />
+
+        <EditText
+            android:id="@+id/peerIdentify"
+            android:layout_width="@dimen/service_controls_width"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_margin="@dimen/service_margin"
+            android:background="@drawable/green_rounded"
+            android:drawableLeft="@drawable/account"
+
+            android:hint="@string/peerIdentify"
+            android:paddingLeft="@dimen/login_controls_padding"
+            android:paddingTop="@dimen/login_controls_padding"
+            android:paddingBottom="@dimen/login_controls_padding"
+            android:textColor="@color/serviceText"
+            android:textColorHint="@color/serviceText" />
+
+        <Button
+            android:id="@+id/connector"
+            android:layout_width="@dimen/service_controls_width"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:layout_margin="@dimen/service_margin"
+            android:background="@drawable/service_white_control_bg"
+            android:paddingTop="@dimen/service_controls_padding"
+            android:paddingBottom="@dimen/service_controls_padding"
+            android:text="@string/connector"
+            android:textColor="@drawable/service_white_control_color"
+            android:onClick="onBtnClick"/>
+    </LinearLayout>
+
+</FrameLayout>
