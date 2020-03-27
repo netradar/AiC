@@ -114,7 +114,7 @@ public class RenderBoard extends Activity{
         {
             switch (resultCode)
             {
-                case 0:
+                case 4:
                     mainRender.sendBack();
                     break;
                 case 1:
