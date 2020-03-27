@@ -24,7 +24,7 @@
         <activity
             android:name=".Ipconnect"
             android:label="@string/title_activity_ipconnect"
-            android:screenOrientation="landscape"
+            android:screenOrientation="portrait"
         android:theme="@style/AppTheme.NoActionBar"
             />
 
