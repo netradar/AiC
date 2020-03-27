@@ -88,6 +88,8 @@ public class RenderBoard extends Activity{
     @Override
     protected void onPause() {
         Log.d("lichao","renderboard onPause");
+
+
         super.onPause();
     }
 
