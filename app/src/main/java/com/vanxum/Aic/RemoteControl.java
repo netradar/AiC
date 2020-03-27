@@ -25,7 +25,7 @@ public class RemoteControl extends Activity {
     {
         if(v==findViewById(R.id.sendBack))
         {
-            setResult(0);
+            setResult(4);
             finish();
         }
         if(v==findViewById(R.id.sendHome))
