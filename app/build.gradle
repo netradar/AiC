@@ -30,6 +30,7 @@ android {
 
     packagingOptions {//用于指定加载库的优先级
         pickFirst 'lib/arm64-v8a/libopus_coder.so'
+        pickFirst 'lib/arm64-v8a/libnetwork_vmtl.so'
 
     }
 }

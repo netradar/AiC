@@ -24,6 +24,14 @@ find_library( # Sets the name of the path variable.
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/src/main/jniLibs/${ANDROID_ABI})
 add_library(opus_coder SHARED   src/main/cpp/OpusEncoder.cpp)
+
+add_library(network_vmtl SHARED   src/main/cpp/Network.cpp)
+
+target_link_libraries(network_vmtl
+        # Links the target library to the log library
+        # included in the NDK.
+        ${log-lib} android log vmtl )
+
 target_link_libraries(opus_coder
         # Links the target library to the log library
         # included in the NDK.

@@ -22,7 +22,11 @@ import android.view.inputmethod.InputMethodManager;
 
 import java.io.IOException;
 
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.nio.ByteBuffer;
+import java.util.Enumeration;
 import java.util.concurrent.ArrayBlockingQueue;
 
 import static androidx.core.content.ContextCompat.getSystemService;
@@ -58,7 +62,7 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
 
 
     float xRatio,yRatio;
-    NetworkManager network;
+    NetworkManager network=null;
     String ipaddr;
     int port;
 
@@ -344,9 +348,32 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
 
             network = new NetworkManager(rbAct);
             new ConnectTask().execute();
+
+         //   NetworkJni.getInstance().networkVmtlInit(getLocalIp(),ipaddr,port,10010);
             init = true;
 
         }
+    }
+    private String getLocalIp()
+    {
+        try
+        {
+            for (Enumeration<NetworkInterface> mEnumeration = NetworkInterface.getNetworkInterfaces(); mEnumeration.hasMoreElements();)
+            {
+                NetworkInterface intf = mEnumeration.nextElement();
+                for (Enumeration<InetAddress> enumIPAddr = intf.getInetAddresses(); enumIPAddr.hasMoreElements();)
+                {
+                    InetAddress inetAddress = enumIPAddr.nextElement();
+                    if (!inetAddress.isLoopbackAddress())
+                    {
+                        return inetAddress.getHostAddress().toString();
+                    }
+                }
+            }
+        } catch (SocketException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
     @Override
     public void surfaceDestroyed(SurfaceHolder surfaceHolder) {
@@ -421,7 +448,8 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
         event.type = type;
         event.code = code;
         event.value = value;
-        network.putMsg(event);
+        if(network!=null)
+            network.putMsg(event);
 
 
     }
