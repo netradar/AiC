@@ -112,11 +112,13 @@ public class RenderBoard extends Activity{
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+
+        Log.d("lichao","request code is "+requestCode+" result code is "+resultCode);
         if(requestCode==0)
         {
             switch (resultCode)
             {
-                case 0:
+                case 4:
                     mainRender.sendBack();
                     break;
                 case 1:
