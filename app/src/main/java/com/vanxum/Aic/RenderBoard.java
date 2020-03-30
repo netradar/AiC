@@ -123,6 +123,7 @@ public class RenderBoard extends Activity{
                     break;
                 case 1:
                     mainRender.sendHome();
+                    
                     break;
                 case 2:
                     mainRender.sendMenu();
