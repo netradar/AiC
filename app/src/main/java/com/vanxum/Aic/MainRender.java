@@ -346,10 +346,10 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
             audioThread = new Thread(this);//
             audioThread.start();
 
-            network = new NetworkManager(rbAct);
-            new ConnectTask().execute();
+        //    network = new NetworkManager(rbAct);
+         //   new ConnectTask().execute();
 
-         //   NetworkJni.getInstance().networkVmtlInit(getLocalIp(),ipaddr,port,10010);
+            NetworkJni.getInstance().networkVmtlInit(getLocalIp(),ipaddr,port,10010);
             init = true;
 
         }
