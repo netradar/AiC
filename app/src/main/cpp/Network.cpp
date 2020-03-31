@@ -39,9 +39,7 @@ typedef struct {
     int sock_[2];
     int chn_num_;
     uint16_t stream_id_;
-    uint16_t hidStream_id;
     int bind_id_;
-    int hidBind_id;
     int local_port_;
     int remote_port_;
     char local_ip_[16];
@@ -54,6 +52,7 @@ typedef struct {
 
 Context cxtHid;
 Context cxtVideo;
+Context cxtAudio;
 #define SESSION_ID 0x327
 
 /*ThreadSafeLogCallBack myLog;
@@ -242,8 +241,6 @@ int initVideo(const char *local_ip,const char *remote_ip,int local_port,int remo
 
    vmtl_create_stream(kVGTP, kStrmDirRecv, "test_rcv_avc_strm", &cxtVideo.stream_id_);
 
-//    vmtl_create_stream(kVGTP, kStrmDirSend, "test_snd_avc_strm", &cxtVideo.hidStream_id);
-
     vmtl_create_conn(&cxtVideo, &cxtVideo.conn_, cxtVideo.cb_, cxtVideo.chn_num_, kConnPropBigStream);
 
     cxtVideo.local_port_ = local_port;
@@ -272,8 +269,6 @@ int initVideo(const char *local_ip,const char *remote_ip,int local_port,int remo
     LOGI("createRecvThreads");
 
     vmtl_bind_stream(cxtVideo.conn_, cxtVideo.stream_id_, &cxtVideo.bind_id_);
-  //  vmtl_bind_stream(cxtVideo.conn_, cxtVideo.hidStream_id, &cxtVideo.hidBind_id);
-
 
     LOGI("vmtl_bind_stream");
     connConfig_t cc_conf = {0};
@@ -286,8 +281,48 @@ int initVideo(const char *local_ip,const char *remote_ip,int local_port,int remo
     return 0;
 
 }
-int initAudio()
+int initAudio(const char *local_ip,const char *remote_ip,int local_port,int remote_port)
 {
+    cxtAudio.is_recv_thread_start_ = 0;
+    cxtAudio.is_vmtl_connected_    = 0;
+    cxtAudio.chn_num_ = 2;
+    cxtAudio.cb_.notifier = onVmtlEventNotify;
+    cxtAudio.cb_.report_data = onReportData;
+    cxtAudio.cb_.source = onSource;
+
+    vmtl_create_stream(kVGTP, kStrmDirRecv, "audio_strm", &cxtAudio.stream_id_);
+
+    vmtl_create_conn(&cxtAudio, &cxtAudio.conn_, cxtAudio.cb_, cxtAudio.chn_num_, kConnPropBigStream);
+
+    cxtAudio.local_port_ = local_port;
+    cxtAudio.remote_port_ = remote_port;
+    strcpy(cxtAudio.local_ip_, local_ip);
+    strcpy(cxtAudio.remote_ip_, remote_ip);
+    cxtAudio.sock_[0] = createSocket(cxtAudio.local_port_, cxtAudio.remote_port_, cxtAudio.local_ip_, cxtAudio.remote_ip_);
+    cxtAudio.sock_[1] = createSocket(cxtAudio.local_port_ + 1, cxtAudio.remote_port_ + 1, cxtAudio.local_ip_, cxtAudio.remote_ip_);
+
+    if(cxtAudio.sock_[0]<0||cxtAudio.sock_[1]<0)
+    {
+        LOGE("socket create failed");
+        return -1;
+    }
+    else
+    {
+        LOGI("socket create successfully");
+    }
+
+    echoToServer(&cxtAudio, 0);
+    echoToServer(&cxtAudio, 1);
+    createRecvThreads(&cxtAudio);
+
+
+    vmtl_bind_stream(cxtAudio.conn_, cxtAudio.stream_id_, &cxtAudio.bind_id_);
+
+
+    connConfig_t cc_conf = {0};
+    cc_conf.session = (void *) SESSION_ID;
+    vmtl_config_conn(cxtAudio.conn_, &cc_conf);
+    vmtl_conn_active(cxtAudio.conn_, kConnAtypeClient);
      return 0;
 }
 int initHid(const char *local_ip,const char *remote_ip,int local_port,int remote_port)
@@ -299,9 +334,9 @@ int initHid(const char *local_ip,const char *remote_ip,int local_port,int remote
     cxtHid.cb_.report_data = onReportData;
     cxtHid.cb_.source = onSource;
 
-    vmtl_create_stream(kVGTP, kStrmDirSend, "test_rcv_avc_strm", &cxtHid.stream_id_);
+    vmtl_create_stream(kVGTP, kStrmDirSend, "hid_strm", &cxtHid.stream_id_);
 
- //   vmtl_create_conn(&cxtHid, &cxtHid.conn_, cxtHid.cb_, cxtHid.chn_num_, kConnPropBigStream);
+    vmtl_create_conn(&cxtHid, &cxtHid.conn_, cxtHid.cb_, cxtHid.chn_num_, kConnPropBigStream);
 
     cxtHid.local_port_ = local_port;
     cxtHid.remote_port_ = remote_port;
@@ -326,15 +361,13 @@ int initHid(const char *local_ip,const char *remote_ip,int local_port,int remote
 
 
     vmtl_bind_stream(cxtHid.conn_, cxtHid.stream_id_, &cxtHid.bind_id_);
-  //  vmtl_bind_stream(cxtHid.conn_, cxtHid.hidStream_id, &cxtHid.hidBind_id);
 
 
     connConfig_t cc_conf = {0};
     cc_conf.session = (void *) SESSION_ID;
     vmtl_config_conn(cxtHid.conn_, &cc_conf);
-
     vmtl_conn_active(cxtHid.conn_, kConnAtypeServer);
-
+    return 0;
 }
 int stopVideo()
 {
@@ -375,9 +408,12 @@ JNIEXPORT jint JNICALL Java_com_vanxum_Aic_NetworkJni_vmtlInit
     vmtl_mode_get(&mode);
 
     initVideo(local_ip,remote_ip,local_port,remote_port);
+    initAudio(local_ip,remote_ip,local_port+2,remote_port+2);
+    initHid(local_ip,remote_ip,local_port+4,remote_port+4);
 
-   // env->ReleaseStringUTFChars(local_ip_, local_ip);
-   // env->ReleaseStringUTFChars(remote_ip_, remote_ip);
+
+    env->ReleaseStringUTFChars(local_ip_, local_ip);
+    env->ReleaseStringUTFChars(remote_ip_, remote_ip);
     return 0;
 
 }
