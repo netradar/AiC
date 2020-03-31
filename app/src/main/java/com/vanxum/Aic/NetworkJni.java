@@ -20,7 +20,7 @@ public class NetworkJni
 
 	public native int startVmtl(boolean isStart);
 	public native void stopVmtl();
-	public native void sendInputEvent(byte[] event);
+	public native void sendInputEvent(byte[] event,int len);
 
 
 	public void setMr(MainRender render)
@@ -43,9 +43,16 @@ public class NetworkJni
 	{
 		mr.reportVideoData(data,len);
 	}
+	void reportAudioData(byte[] data,int len)
+	{
+		mr.reportAudioData(data,len);
+	}
 	void releaseVmtl()
 	{
-
+		stopVmtl();
 	}
-
+	void sendInputEventToJni(byte[] data,int len)
+	{
+		sendInputEvent(data,len);
+	}
 }

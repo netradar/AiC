@@ -258,6 +258,7 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
 
     public void releaseNetwork()
     {
+        NetworkJni.getInstance().stopVmtl();
      ;
         if(network!=null)
         {
@@ -356,7 +357,7 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
 
 
             NetworkJni.getInstance().setMr(this);
-            NetworkJni.getInstance().networkVmtlInit(getLocalIp(),ipaddr,20010,10010);
+            NetworkJni.getInstance().networkVmtlInit(getLocalIp(),ipaddr,20010,port);
             init = true;
 
         }
@@ -457,6 +458,22 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
         event.value = value;
         if(network!=null)
             network.putMsg(event);
+
+        byte[] msg = new byte[8];
+
+
+        msg[0] = (byte)(event.type&0xff);
+        msg[1] = (byte)((event.type>>8)&0xff);
+
+        msg[2] = (byte)(event.code&0xff);
+        msg[3] = (byte)((event.code>>8)&0xff);
+
+        msg[4] = (byte)(event.value&0xff);
+        msg[5] = (byte)((event.value>>8)&0xff);
+        msg[6] = (byte)((event.value>>16)&0xff);
+        msg[7] = (byte)((event.value>>24)&0xff);
+
+        NetworkJni.getInstance().sendInputEventToJni(msg,8);
 
 
     }

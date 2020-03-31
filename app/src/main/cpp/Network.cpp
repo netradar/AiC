@@ -13,11 +13,12 @@
 #include <jni.h>
 #include <stdio.h>
 #include "pthread.h"
+#include <sys/syscall.h>
 
 #define  LOG_TAG    "native-dev"
 #define  LOGI(...)  __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-#define LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
-#define LOGI(...)  __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
+#define  LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+
 
 /*
  * Class:     com_vanxum_Aic_NetworkJni
@@ -29,6 +30,7 @@ jobject     javaObj;
 jmethodID   reportVideoFormat_callBack;
 jmethodID   reportAudioFormat_callBack;
 jmethodID   reportVideoData_callBack;
+jmethodID   reportAudioData_callBack;
 
 
 void *recvMediaThread(void *obj);
@@ -55,12 +57,56 @@ Context cxtVideo;
 Context cxtAudio;
 #define SESSION_ID 0x327
 
-/*ThreadSafeLogCallBack myLog;
+typedef enum {
+    kNoneLevel,
+    kErrorLevel,
+    kWarningLevel,
+    kInformationLevel,
+    kDebugLevel
+} DebugLog;
+static const char level_char[kDebugLevel + 1] = {'N', 'E', 'W', 'I', 'D'};
 
-void myLog(const char *log_module, int level,const char *tag,int line, const char *fmt, ...)
+#define vmtl_log    true
+
+void myLog(const char *log_module, int level,const char *tag,int line, const char *fmt,va_list ap)
 {
-    Log("vmtl", vmtlLevelWarning, "xxx", __LINE__ , fmt_string)
-}*/
+    if(!vmtl_log)
+        return;
+    char buf1[4096] = {0};
+    char buf[4096] = {0};
+    char buf_time[128];
+    vsnprintf(buf, 4096, fmt, ap);
+
+    sprintf(buf1, "%u/%s(%4d):%s",   level_char[level], tag, line,
+            buf);
+    android_LogPriority log_priority = ANDROID_LOG_DEBUG;
+    switch (level) {
+        case kDebugLevel:
+            log_priority = ANDROID_LOG_DEBUG;
+            break;
+        case kInformationLevel:
+            log_priority = ANDROID_LOG_INFO;
+            break;
+        case kWarningLevel:
+            log_priority = ANDROID_LOG_WARN;
+            break;
+        case kErrorLevel:
+            log_priority = ANDROID_LOG_ERROR;
+            break;
+        default:
+            break;
+    }
+    __android_log_print(log_priority, tag, "%s", buf1);
+}
+void redirect_log(const char *log_module, int level,const char *tag,int line, const char *fmt, ...)
+{
+
+    va_list ap;
+    va_start(ap, fmt);
+    myLog(log_module, level, tag, line, fmt, ap);
+    va_end(ap);
+
+}
 
  vmtlCbRetVal_t onReportData(void *obj, char *data, int len, outDataDesp_t *desp) {
     Context *cxt = (Context *)obj;
@@ -73,7 +119,11 @@ void myLog(const char *log_module, int level,const char *tag,int line, const cha
     jbyteArray jbuff = (env)->NewByteArray(len);
 
     (env)->SetByteArrayRegion(jbuff,0,len,(jbyte *)data);
-    env->CallVoidMethod(javaObj,reportVideoData_callBack, jbuff,len);
+
+    if(desp->type==kVGTP)
+        env->CallVoidMethod(javaObj,reportVideoData_callBack, jbuff,len);
+    else if(desp->type==kAudio)
+        env->CallVoidMethod(javaObj,reportAudioData_callBack, jbuff,len);
 
     (env)->DeleteLocalRef(jbuff);
 
@@ -223,10 +273,10 @@ void _recvThread(Context *cxt, int channel)
 }
  void byeToServer(Context *cxt, int channel)
 {
-    if( send(cxt->sock_[channel], "BYE", 4, 0) <= 0 ) {
+    if( send(cxt->sock_[channel], "BYE", 3, 0) <= 0 ) {
         LOGE("send BYE failed, error: %s",strerror(errno));
     } else {
-        LOGI("channel %d BYE to server", channel);
+        LOGI("channel %d BYE to server successfully", channel);
     }
 }
 int initVideo(const char *local_ip,const char *remote_ip,int local_port,int remote_port)
@@ -371,8 +421,31 @@ int initHid(const char *local_ip,const char *remote_ip,int local_port,int remote
 }
 int stopVideo()
 {
-
+    byeToServer(&cxtVideo,0);
+    cxtVideo.is_recv_thread_start_ = 0;
+    cxtVideo.is_vmtl_connected_    = 0;
+    vmtl_conn_deactive(cxtVideo.conn_);
+    vmtl_release_conn(cxtVideo.conn_);
+    vmtl_destroy_stream(cxtVideo.stream_id_);
      return 0;
+}
+int stopAudio()
+{
+    cxtAudio.is_recv_thread_start_ = 0;
+    cxtAudio.is_vmtl_connected_    = 0;
+    vmtl_conn_deactive(cxtAudio.conn_);
+    vmtl_release_conn(cxtAudio.conn_);
+    vmtl_destroy_stream(cxtAudio.stream_id_);
+    return 0;
+}
+int stopHid()
+{
+    cxtHid.is_recv_thread_start_ = 0;
+    cxtHid.is_vmtl_connected_    = 0;
+    vmtl_conn_deactive(cxtHid.conn_);
+    vmtl_release_conn(cxtHid.conn_);
+    vmtl_destroy_stream(cxtHid.stream_id_);
+    return 0;
 }
 JNIEXPORT jint JNICALL Java_com_vanxum_Aic_NetworkJni_vmtlInit
   (JNIEnv * env, jobject obj, jstring local_ip_,jstring remote_ip_, jint local_port,jint remote_port)
@@ -389,12 +462,17 @@ JNIEXPORT jint JNICALL Java_com_vanxum_Aic_NetworkJni_vmtlInit
 
     jclass cls = env->GetObjectClass(obj);
     reportVideoData_callBack   = env->GetMethodID(cls, "reportVideoData", "([BI)V");
+    reportAudioData_callBack   = env->GetMethodID(cls, "reportAudioData", "([BI)V");
+
+
 
 
 
 
 
     vmtl_init();
+
+    vmtl_log_redirect(redirect_log);
     int ver = vmtl_get_vernum();
 
     char ver_string[MAX_VERSION_STRING_LENGTH];
@@ -432,8 +510,10 @@ JNIEXPORT void JNICALL Java_com_vanxum_Aic_NetworkJni_stopVmtl
         (JNIEnv *, jobject)
 {
     stopVideo();
-  //  stopAudio();
-  //  stopHid();
+    stopAudio();
+    stopHid();
+
+    vmtl_uninit();
 }
 /*
  * Class:     com_vanxum_Aic_NetworkJni
@@ -441,7 +521,14 @@ JNIEXPORT void JNICALL Java_com_vanxum_Aic_NetworkJni_stopVmtl
  * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_com_vanxum_Aic_NetworkJni_sendInputEvent
-  (JNIEnv *env, jobject,jbyteArray event)
+  (JNIEnv *env, jobject,jbyteArray event,int len)
 {
     jbyte *pBytes = env->GetByteArrayElements(event, 0);
+
+    vmtlDataDesp_t desp = {0};
+    desp.type = kHid;
+    desp.sub_type = HID_DATA_TYPE_MOUSE;
+    vmtl_send_data(cxtHid.conn_, cxtHid.bind_id_, (char *)pBytes, len, &desp);
+
+
 }
