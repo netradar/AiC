@@ -354,9 +354,9 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
             network = new NetworkManager(rbAct);
             new ConnectTask().execute();
 
-            Log.d("lichao","local ip is "+getLocalIp());
+
             NetworkJni.getInstance().setMr(this);
-            NetworkJni.getInstance().networkVmtlInit("192.168.1.174",ipaddr,20010,10010);
+            NetworkJni.getInstance().networkVmtlInit(getLocalIp(),ipaddr,20010,10010);
             init = true;
 
         }

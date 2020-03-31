@@ -19,6 +19,7 @@ public class NetworkJni
 	public native int vmtlInit(String local_ip,String remote_ip,int local_port,int remote_port);
 
 	public native int startVmtl(boolean isStart);
+	public native void stopVmtl();
 	public native void sendInputEvent(byte[] event);
 
 
@@ -41,6 +42,10 @@ public class NetworkJni
 	void reportVideoData(byte[] data,int len)
 	{
 		mr.reportVideoData(data,len);
+	}
+	void releaseVmtl()
+	{
+
 	}
 
 }

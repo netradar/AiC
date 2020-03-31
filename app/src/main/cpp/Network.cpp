@@ -286,6 +286,10 @@ int initVideo(const char *local_ip,const char *remote_ip,int local_port,int remo
     return 0;
 
 }
+int initAudio()
+{
+     return 0;
+}
 int initHid(const char *local_ip,const char *remote_ip,int local_port,int remote_port)
 {
     cxtHid.is_recv_thread_start_ = 0;
@@ -331,6 +335,11 @@ int initHid(const char *local_ip,const char *remote_ip,int local_port,int remote
 
     vmtl_conn_active(cxtHid.conn_, kConnAtypeServer);
 
+}
+int stopVideo()
+{
+
+     return 0;
 }
 JNIEXPORT jint JNICALL Java_com_vanxum_Aic_NetworkJni_vmtlInit
   (JNIEnv * env, jobject obj, jstring local_ip_,jstring remote_ip_, jint local_port,jint remote_port)
@@ -383,7 +392,13 @@ JNIEXPORT jint JNICALL Java_com_vanxum_Aic_NetworkJni_startVmtl
 
     return 0;
 }
-
+JNIEXPORT void JNICALL Java_com_vanxum_Aic_NetworkJni_stopVmtl
+        (JNIEnv *, jobject)
+{
+    stopVideo();
+  //  stopAudio();
+  //  stopHid();
+}
 /*
  * Class:     com_vanxum_Aic_NetworkJni
  * Method:    sendInputEvent
