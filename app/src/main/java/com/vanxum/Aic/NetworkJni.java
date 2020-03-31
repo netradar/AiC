@@ -19,7 +19,7 @@ public class NetworkJni
 	public native int vmtlInit(String local_ip,String remote_ip,int local_port,int remote_port);
 
 	public native int startVmtl(boolean isStart);
-	public native void sendInputEvent();
+	public native void sendInputEvent(byte[] event);
 
 
 	public void setMr(MainRender render)
@@ -30,6 +30,10 @@ public class NetworkJni
 	public int networkVmtlInit(String local_ip,String remote_ip,int local_port,int remote_port)
 	{
 		return vmtlInit(local_ip,remote_ip,local_port,remote_port);
+
+	}
+	public void networkPutMsg(byte[] msg)
+	{
 
 	}
 

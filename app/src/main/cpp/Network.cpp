@@ -12,6 +12,7 @@
 #include <android/log.h>
 #include <jni.h>
 #include <stdio.h>
+#include "pthread.h"
 
 #define  LOG_TAG    "native-dev"
 #define  LOGI(...)  __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
@@ -30,12 +31,17 @@ jmethodID   reportAudioFormat_callBack;
 jmethodID   reportVideoData_callBack;
 
 
+void *recvMediaThread(void *obj);
+void *recvCtrlThread(void *obj);
+
 typedef struct {
     void *conn_;
     int sock_[2];
     int chn_num_;
     uint16_t stream_id_;
+    uint16_t hidStream_id;
     int bind_id_;
+    int hidBind_id;
     int local_port_;
     int remote_port_;
     char local_ip_[16];
@@ -46,12 +52,21 @@ typedef struct {
 
 } Context;
 
+Context cxtHid;
 Context cxtVideo;
 #define SESSION_ID 0x327
 
-static vmtlCbRetVal_t onReportData(void *obj, char *data, int len, outDataDesp_t *desp) {
+/*ThreadSafeLogCallBack myLog;
+
+void myLog(const char *log_module, int level,const char *tag,int line, const char *fmt, ...)
+{
+    Log("vmtl", vmtlLevelWarning, "xxx", __LINE__ , fmt_string)
+}*/
+
+ vmtlCbRetVal_t onReportData(void *obj, char *data, int len, outDataDesp_t *desp) {
     Context *cxt = (Context *)obj;
 
+     LOGI("onReportData len is %d",len);
 
     JNIEnv *env;
     javaVM->AttachCurrentThread(&env, NULL);
@@ -65,16 +80,22 @@ static vmtlCbRetVal_t onReportData(void *obj, char *data, int len, outDataDesp_t
 
     return kRetNormal;
 }
-static int onSource(void *obj, const char *sendData, int len, int channel, void *sourceContext, outDataDesp_t *desp) {
+ int onSource(void *obj, const char *sendData, int len, int channel, void *sourceContext, outDataDesp_t *desp) {
     Context *cxt = (Context *)obj;
+
+    LOGI("onSource channe is %d", channel);
+    LOGI("onSource ctx is %p", cxt);
+    LOGI("onSource ctx sock is %d", cxt->sock_[channel]);
+
 
     if( send(cxt->sock_[channel], sendData + VMTL_MAX_RELAY_PACKET_LEN, len, 0) <= 0 ) {
 
     }
+    LOGI("onSource after ");
 
     return 0;
 }
-static int createSocket(int localPort, int remotePort, const char* localIP, const char* remoteIP) {
+ int createSocket(int localPort, int remotePort, const char* localIP, const char* remoteIP) {
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock == -1) {
 
@@ -111,7 +132,7 @@ static int createSocket(int localPort, int remotePort, const char* localIP, cons
     return sock;
 }
 
-static void _recvThread(Context *cxt, int channel)
+void _recvThread(Context *cxt, int channel)
 {
     outDataDesp_t desp = {0};
     char *sink_buff = NULL;
@@ -119,59 +140,68 @@ static void _recvThread(Context *cxt, int channel)
 
     while(cxt->is_recv_thread_start_)
     {
+        LOGI("cxt conn is %p channel is %d",cxt->conn_,channel);
         vmtlNotification_t conn_state = vmtl_get_conn_status(cxt->conn_);
         if (conn_state != kConnected && conn_state != kConnecting) { continue; }
 
         vmtl_get_sink_buff(cxt->conn_, channel, &sink_buff);
         if (!sink_buff)
         {
-            printf("failed to get sink buff!\n");
+            LOGE("failed to get sink buff!");
+            continue;
+        }
+        LOGI("recve before channel is %d ",channel);
+        recv_len = recv(cxt->sock_[channel], sink_buff, 1500, 0); //1500 is MAX_VMTL_MTU
+        if (recv_len <= 0)
+        {
+            LOGI("recv error is  ");
             continue;
         }
 
-        recv_len = recv(cxt->sock_[channel], sink_buff, 1500, 0); //1500 is MAX_VMTL_MTU
-        if (recv_len <= 0) { printf("recv failed with err: %s\n", strerror(errno)); continue; }
-
+        LOGI("recve len is %d ", recv_len);
         vmtl_sink_data(cxt->conn_, sink_buff, recv_len, channel, NULL);
 
         //printf("recv %d bytes\n", recv_len);
     }
 }
-static void* recvMediaThread(void *obj)
+ void* recvMediaThread(void *obj)
 {
     Context *cxt = (Context *)obj;
 
     _recvThread(cxt, 0);
+
+    return NULL;
 }
 
-static void* recvCtrlThread(void *obj)
+ void* recvCtrlThread(void *obj)
 {
     Context *cxt = (Context *)obj;
 
     _recvThread(cxt, 1);
+    return NULL;
 }
 
-static void createRecvThreads(Context *cxt)
+ void createRecvThreads(Context *cxt)
 {
     pthread_attr_t attr;
     pthread_t media_thread, ctrl_thread;
 
     pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
     cxt->is_recv_thread_start_ = 1;
 
-    if(pthread_create(&media_thread, &attr, recvMediaThread, (void *)cxt) != 0) {
-        __android_log_print(ANDROID_LOG_DEBUG, "lichao", "%s", "thread error media");
+    if(pthread_create(&media_thread, NULL, recvMediaThread, (void *)cxt) != 0) {
+        LOGE("thread error media");
     }
 
-    if(pthread_create(&ctrl_thread, &attr, recvCtrlThread, (void *)cxt) != 0) {
-        __android_log_print(ANDROID_LOG_DEBUG, "lichao", "%s", "thread error ctrl");
+    if(pthread_create(&ctrl_thread, NULL , recvCtrlThread, (void *)cxt) != 0) {
+       LOGE("thread error ctrl");
     }
 
     pthread_attr_destroy(&attr);
 }
-static void onVmtlEventNotify(void *obj, vmtlNotification_t event, void *data) {
+ void onVmtlEventNotify(void *obj, vmtlNotification_t event, void *data) {
     Context *cxt = (Context *)obj;
     switch (event) {
         case kConnected:
@@ -182,6 +212,125 @@ static void onVmtlEventNotify(void *obj, vmtlNotification_t event, void *data) {
         default:
             break;
     }
+}
+
+ void echoToServer(Context *cxt, int channel)
+{
+    if( send(cxt->sock_[channel], "ECHO", 4, 0) <= 0 ) {
+        LOGE("send ECHO failed, error: %s",strerror(errno));
+    } else {
+        LOGI("channel %d ECHO to server", channel);
+    }
+}
+ void byeToServer(Context *cxt, int channel)
+{
+    if( send(cxt->sock_[channel], "BYE", 4, 0) <= 0 ) {
+        LOGE("send BYE failed, error: %s",strerror(errno));
+    } else {
+        LOGI("channel %d BYE to server", channel);
+    }
+}
+int initVideo(const char *local_ip,const char *remote_ip,int local_port,int remote_port)
+{
+
+    cxtVideo.is_recv_thread_start_ = 0;
+    cxtVideo.is_vmtl_connected_    = 0;
+    cxtVideo.chn_num_ = 2;
+    cxtVideo.cb_.notifier = onVmtlEventNotify;
+    cxtVideo.cb_.report_data = onReportData;
+    cxtVideo.cb_.source = onSource;
+
+   vmtl_create_stream(kVGTP, kStrmDirRecv, "test_rcv_avc_strm", &cxtVideo.stream_id_);
+
+//    vmtl_create_stream(kVGTP, kStrmDirSend, "test_snd_avc_strm", &cxtVideo.hidStream_id);
+
+    vmtl_create_conn(&cxtVideo, &cxtVideo.conn_, cxtVideo.cb_, cxtVideo.chn_num_, kConnPropBigStream);
+
+    cxtVideo.local_port_ = local_port;
+    cxtVideo.remote_port_ = remote_port;
+    strcpy(cxtVideo.local_ip_, local_ip);
+    strcpy(cxtVideo.remote_ip_, remote_ip);
+
+
+
+    cxtVideo.sock_[0] = createSocket(cxtVideo.local_port_, cxtVideo.remote_port_, cxtVideo.local_ip_, cxtVideo.remote_ip_);
+    cxtVideo.sock_[1] = createSocket(cxtVideo.local_port_ + 1, cxtVideo.remote_port_ + 1, cxtVideo.local_ip_, cxtVideo.remote_ip_);
+
+    if(cxtVideo.sock_[0]<0||cxtVideo.sock_[1]<0)
+    {
+        LOGE("socket create failed");
+        return -1;
+    }
+    else
+    {
+        LOGI("socket create successfully");
+    }
+
+    echoToServer(&cxtVideo, 0);
+    echoToServer(&cxtVideo, 1);
+    createRecvThreads(&cxtVideo);
+    LOGI("createRecvThreads");
+
+    vmtl_bind_stream(cxtVideo.conn_, cxtVideo.stream_id_, &cxtVideo.bind_id_);
+  //  vmtl_bind_stream(cxtVideo.conn_, cxtVideo.hidStream_id, &cxtVideo.hidBind_id);
+
+
+    LOGI("vmtl_bind_stream");
+    connConfig_t cc_conf = {0};
+    cc_conf.session = (void *) SESSION_ID;
+    vmtl_config_conn(cxtVideo.conn_, &cc_conf);
+    LOGI("vmtl_config_conn");
+    vmtl_conn_active(cxtVideo.conn_, kConnAtypeClient);
+    LOGI("vmtl_conn_active");
+
+    return 0;
+
+}
+int initHid(const char *local_ip,const char *remote_ip,int local_port,int remote_port)
+{
+    cxtHid.is_recv_thread_start_ = 0;
+    cxtHid.is_vmtl_connected_    = 0;
+    cxtHid.chn_num_ = 2;
+    cxtHid.cb_.notifier = onVmtlEventNotify;
+    cxtHid.cb_.report_data = onReportData;
+    cxtHid.cb_.source = onSource;
+
+    vmtl_create_stream(kVGTP, kStrmDirSend, "test_rcv_avc_strm", &cxtHid.stream_id_);
+
+ //   vmtl_create_conn(&cxtHid, &cxtHid.conn_, cxtHid.cb_, cxtHid.chn_num_, kConnPropBigStream);
+
+    cxtHid.local_port_ = local_port;
+    cxtHid.remote_port_ = remote_port;
+    strcpy(cxtHid.local_ip_, local_ip);
+    strcpy(cxtHid.remote_ip_, remote_ip);
+    cxtHid.sock_[0] = createSocket(cxtHid.local_port_, cxtHid.remote_port_, cxtHid.local_ip_, cxtHid.remote_ip_);
+    cxtHid.sock_[1] = createSocket(cxtHid.local_port_ + 1, cxtHid.remote_port_ + 1, cxtHid.local_ip_, cxtHid.remote_ip_);
+
+    if(cxtHid.sock_[0]<0||cxtHid.sock_[1]<0)
+    {
+        LOGE("socket create failed");
+        return -1;
+    }
+    else
+    {
+        LOGI("socket create successfully");
+    }
+
+    echoToServer(&cxtHid, 0);
+    echoToServer(&cxtHid, 1);
+    createRecvThreads(&cxtHid);
+
+
+    vmtl_bind_stream(cxtHid.conn_, cxtHid.stream_id_, &cxtHid.bind_id_);
+  //  vmtl_bind_stream(cxtHid.conn_, cxtHid.hidStream_id, &cxtHid.hidBind_id);
+
+
+    connConfig_t cc_conf = {0};
+    cc_conf.session = (void *) SESSION_ID;
+    vmtl_config_conn(cxtHid.conn_, &cc_conf);
+
+    vmtl_conn_active(cxtHid.conn_, kConnAtypeServer);
+
 }
 JNIEXPORT jint JNICALL Java_com_vanxum_Aic_NetworkJni_vmtlInit
   (JNIEnv * env, jobject obj, jstring local_ip_,jstring remote_ip_, jint local_port,jint remote_port)
@@ -201,12 +350,7 @@ JNIEXPORT jint JNICALL Java_com_vanxum_Aic_NetworkJni_vmtlInit
 
 
 
-    cxtVideo.is_recv_thread_start_ = 0;
-    cxtVideo.is_vmtl_connected_    = 0;
-    cxtVideo.chn_num_ = 2;
-    cxtVideo.cb_.notifier = onVmtlEventNotify;
-    cxtVideo.cb_.report_data = onReportData;
-    cxtVideo.cb_.source = onSource;
+
 
     vmtl_init();
     int ver = vmtl_get_vernum();
@@ -221,43 +365,10 @@ JNIEXPORT jint JNICALL Java_com_vanxum_Aic_NetworkJni_vmtlInit
     vmtl_mode_set(&mode);
     vmtl_mode_get(&mode);
 
-    vmtl_create_stream(kVGTP, kStrmDirRecv, "test_rcv_avc_strm", &cxtVideo.stream_id_);
+    initVideo(local_ip,remote_ip,local_port,remote_port);
 
-    LOGI("stread_id is %d ",cxtVideo.stream_id_);
-
-
-
-    vmtl_create_conn(&cxtVideo, &cxtVideo.conn_, cxtVideo.cb_, cxtVideo.chn_num_, kConnPropBigStream);
-
-    cxtVideo.local_port_ = local_port;
-    cxtVideo.remote_port_ = remote_port;
-    strcpy(cxtVideo.local_ip_, local_ip);
-    strcpy(cxtVideo.remote_ip_, remote_ip);
-    cxtVideo.sock_[0] = createSocket(cxtVideo.local_port_, cxtVideo.remote_port_, cxtVideo.local_ip_, cxtVideo.remote_ip_);
-    cxtVideo.sock_[1] = createSocket(cxtVideo.local_port_ + 1, cxtVideo.remote_port_ + 1, cxtVideo.local_ip_, cxtVideo.remote_ip_);
-
-    if(cxtVideo.sock_[0]<0||cxtVideo.sock_[1]<0)
-    {
-        LOGE("socket create failed");
-    }
-    else
-    {
-        LOGI("socket create successfully");
-    }
-    createRecvThreads(&cxtVideo);
-
-
-    vmtl_bind_stream(cxtVideo.conn_, cxtVideo.stream_id_, &cxtVideo.bind_id_);
-
-
-    connConfig_t cc_conf = {0};
-    cc_conf.session = (void *) SESSION_ID;
-    vmtl_config_conn(cxtVideo.conn_, &cc_conf);
-
-    vmtl_conn_active(cxtVideo.conn_, kConnAtypeClient);
-
-    env->ReleaseStringUTFChars(local_ip_, local_ip);
-    env->ReleaseStringUTFChars(remote_ip_, remote_ip);
+   // env->ReleaseStringUTFChars(local_ip_, local_ip);
+   // env->ReleaseStringUTFChars(remote_ip_, remote_ip);
     return 0;
 
 }
@@ -279,7 +390,7 @@ JNIEXPORT jint JNICALL Java_com_vanxum_Aic_NetworkJni_startVmtl
  * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_com_vanxum_Aic_NetworkJni_sendInputEvent
-  (JNIEnv *, jobject)
+  (JNIEnv *env, jobject,jbyteArray event)
 {
-
+    jbyte *pBytes = env->GetByteArrayElements(event, 0);
 }

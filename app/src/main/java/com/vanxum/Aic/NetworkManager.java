@@ -110,11 +110,11 @@ public class NetworkManager {
 		{
 			byte[] headLen = new byte[4];
 			boolean isClose;
-			isClose = socketAudio.isClosed();
+			isClose = socket.isClosed();
 
 		//	Log.d("lichao","recv audio thread start");
 
-			while(recvFlag&&!isClose&&!socketAudio.isInputShutdown())
+			while(recvFlag&&!isClose&&!socket.isInputShutdown())
 			{
 
 				if(readAudioData(headLen,4)==0)
@@ -206,18 +206,18 @@ public class NetworkManager {
 		try {
 			try {
 				SocketAddress socketAddress1 = new InetSocketAddress(ip ,port);
-				SocketAddress socketAddress2 = new InetSocketAddress(ip ,port+1);
+			//	SocketAddress socketAddress2 = new InetSocketAddress(ip ,port+1);
 
 				socket = new Socket();
-				socketAudio = new Socket();
-				if(socket==null||socketAudio==null)
+		//		socketAudio = new Socket();
+				if(socket==null)//||socketAudio==null)
 				{
 					Log.d("lichao","socket error");
 					return -1;
 				}
 
 				socket.connect(socketAddress1,500);
-				socketAudio.connect(socketAddress2,500);
+		//		socketAudio.connect(socketAddress2,500);
 
 
 
@@ -230,21 +230,21 @@ public class NetworkManager {
 			Log.d("lichao","socket ok");
 
 			socket.setSoTimeout(0);
-			socketAudio.setSoTimeout(0);
-			inputStream = socket.getInputStream();
+		//	socketAudio.setSoTimeout(0);
+		//	inputStream = socket.getInputStream();
 			outputStream = socket.getOutputStream();
 
-			inputStreamAudio = socketAudio.getInputStream();
+			inputStreamAudio = socket.getInputStream();
 
 			recvFlag = true;
 			sendFlag = true;
 
-			recvThread = new Thread(new RecvRunnable());
+	//		recvThread = new Thread(new RecvRunnable());
 			sendThread = new Thread(new SendRunnable());
 
 			recvAudioThread = new Thread((new RecvAudioRunnable()));
 
-			recvThread.start();
+		//	recvThread.start();
 			sendThread.start();
 			recvAudioThread.start();
 			

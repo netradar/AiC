@@ -22,6 +22,7 @@ import android.view.inputmethod.InputMethodManager;
 
 import java.io.IOException;
 
+import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -83,7 +84,7 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            if(network.connect(ipaddr,port)<0) {
+            if(network.connect(ipaddr,10012)<0) {
                 Intent i=new Intent("render.message");
                 i.putExtra("networkerr", true);
                 rbAct.sendBroadcast(i);
@@ -172,7 +173,7 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
                 }
                 else
                 {
-                //   Log.e("lichao", "input buffer full,indx is"+inIndex);
+                   Log.e("lichao", "input buffer full,indx is"+inIndex);
 
 
                 }
@@ -182,6 +183,10 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
                     outIndex = codec.dequeueOutputBuffer(outBufferInfo, 100);
                     if (outIndex >= 0) {
                         codec.releaseOutputBuffer(outIndex, true);
+                    }
+                    else
+                    {
+                        Log.d("lichao","out put error");
                     }
 
 
@@ -346,10 +351,12 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
             audioThread = new Thread(this);//
             audioThread.start();
 
-        //    network = new NetworkManager(rbAct);
-         //   new ConnectTask().execute();
+            network = new NetworkManager(rbAct);
+            new ConnectTask().execute();
 
-            NetworkJni.getInstance().networkVmtlInit(getLocalIp(),ipaddr,port,10010);
+            Log.d("lichao","local ip is "+getLocalIp());
+            NetworkJni.getInstance().setMr(this);
+            NetworkJni.getInstance().networkVmtlInit("192.168.1.174",ipaddr,20010,10010);
             init = true;
 
         }
@@ -364,9 +371,9 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
                 for (Enumeration<InetAddress> enumIPAddr = intf.getInetAddresses(); enumIPAddr.hasMoreElements();)
                 {
                     InetAddress inetAddress = enumIPAddr.nextElement();
-                    if (!inetAddress.isLoopbackAddress())
+                    if (inetAddress instanceof Inet4Address && !inetAddress.isLoopbackAddress())
                     {
-                        return inetAddress.getHostAddress().toString();
+                        return inetAddress.getHostAddress();
                     }
                 }
             }
