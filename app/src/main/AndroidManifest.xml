@@ -42,7 +42,7 @@
         </activity>
         <activity
             android:name=".RenderBoard"
-            android:screenOrientation="portrait"
+            android:screenOrientation="landscape"
 
         android:theme="@style/AppTheme.NoActionBar"
             android:windowSoftInputMode="adjustPan|stateHidden" />

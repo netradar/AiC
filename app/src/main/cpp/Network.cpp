@@ -111,7 +111,7 @@ void redirect_log(const char *log_module, int level,const char *tag,int line, co
  vmtlCbRetVal_t onReportData(void *obj, char *data, int len, outDataDesp_t *desp) {
     Context *cxt = (Context *)obj;
 
-     LOGI("onReportData len is %d",len);
+     LOGI("onReportData type is %d",desp->type);
 
     JNIEnv *env;
     javaVM->AttachCurrentThread(&env, NULL);
@@ -340,7 +340,7 @@ int initAudio(const char *local_ip,const char *remote_ip,int local_port,int remo
     cxtAudio.cb_.report_data = onReportData;
     cxtAudio.cb_.source = onSource;
 
-    vmtl_create_stream(kVGTP, kStrmDirRecv, "audio_strm", &cxtAudio.stream_id_);
+    vmtl_create_stream(kAudio, kStrmDirRecv, "audio_strm", &cxtAudio.stream_id_);
 
     vmtl_create_conn(&cxtAudio, &cxtAudio.conn_, cxtAudio.cb_, cxtAudio.chn_num_, kConnPropBigStream);
 
@@ -384,7 +384,7 @@ int initHid(const char *local_ip,const char *remote_ip,int local_port,int remote
     cxtHid.cb_.report_data = onReportData;
     cxtHid.cb_.source = onSource;
 
-    vmtl_create_stream(kVGTP, kStrmDirSend, "hid_strm", &cxtHid.stream_id_);
+    vmtl_create_stream(kHid, kStrmDirTwoWay, "hid_strm", &cxtHid.stream_id_);
 
     vmtl_create_conn(&cxtHid, &cxtHid.conn_, cxtHid.cb_, cxtHid.chn_num_, kConnPropBigStream);
 
@@ -412,7 +412,7 @@ int initHid(const char *local_ip,const char *remote_ip,int local_port,int remote
 
     vmtl_bind_stream(cxtHid.conn_, cxtHid.stream_id_, &cxtHid.bind_id_);
 
-
+    LOGI("hid bind id is %d",cxtHid.bind_id_);
     connConfig_t cc_conf = {0};
     cc_conf.session = (void *) SESSION_ID;
     vmtl_config_conn(cxtHid.conn_, &cc_conf);
@@ -528,6 +528,8 @@ JNIEXPORT void JNICALL Java_com_vanxum_Aic_NetworkJni_sendInputEvent
     vmtlDataDesp_t desp = {0};
     desp.type = kHid;
     desp.sub_type = HID_DATA_TYPE_MOUSE;
+
+    LOGI("hid bind id is %d",cxtHid.bind_id_);
     vmtl_send_data(cxtHid.conn_, cxtHid.bind_id_, (char *)pBytes, len, &desp);
 
 

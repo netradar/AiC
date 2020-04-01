@@ -6,7 +6,7 @@
 cmake_minimum_required(VERSION 3.4.1)
 
 
-set(SRC_DIR src/main)
+set(SRC_DIR src/main/cpp)
 
 include_directories(${CMAKE_SOURCE_DIR}/src/main/cpp/include)
 link_directories(${CMAKE_SOURCE_DIR}/src/main/jniLibs/${ANDROID_ABI})
