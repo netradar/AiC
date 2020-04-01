@@ -132,15 +132,12 @@ void redirect_log(const char *log_module, int level,const char *tag,int line, co
  int onSource(void *obj, const char *sendData, int len, int channel, void *sourceContext, outDataDesp_t *desp) {
     Context *cxt = (Context *)obj;
 
-    LOGI("onSource channe is %d", channel);
-    LOGI("onSource ctx is %p", cxt);
-    LOGI("onSource ctx sock is %d", cxt->sock_[channel]);
 
 
     if( send(cxt->sock_[channel], sendData + VMTL_MAX_RELAY_PACKET_LEN, len, 0) <= 0 ) {
-
+        LOGI("onSource send failed sock is %d", cxt->sock_[channel]);
     }
-    LOGI("onSource after ");
+
 
     return 0;
 }
@@ -189,7 +186,7 @@ void _recvThread(Context *cxt, int channel)
 
     while(cxt->is_recv_thread_start_)
     {
-        LOGI("cxt conn is %p channel is %d",cxt->conn_,channel);
+
         vmtlNotification_t conn_state = vmtl_get_conn_status(cxt->conn_);
         if (conn_state != kConnected && conn_state != kConnecting) { continue; }
 
@@ -199,7 +196,7 @@ void _recvThread(Context *cxt, int channel)
             LOGE("failed to get sink buff!");
             continue;
         }
-        LOGI("recve before channel is %d ",channel);
+
         recv_len = recv(cxt->sock_[channel], sink_buff, 1500, 0); //1500 is MAX_VMTL_MTU
         if (recv_len <= 0)
         {
@@ -207,7 +204,7 @@ void _recvThread(Context *cxt, int channel)
             continue;
         }
 
-        LOGI("recve len is %d ", recv_len);
+
         vmtl_sink_data(cxt->conn_, sink_buff, recv_len, channel, NULL);
 
         //printf("recv %d bytes\n", recv_len);
@@ -529,7 +526,6 @@ JNIEXPORT void JNICALL Java_com_vanxum_Aic_NetworkJni_sendInputEvent
     desp.type = kHid;
     desp.sub_type = HID_DATA_TYPE_MOUSE;
 
-    LOGI("hid bind id is %d",cxtHid.bind_id_);
     vmtl_send_data(cxtHid.conn_, cxtHid.bind_id_, (char *)pBytes, len, &desp);
 
 
