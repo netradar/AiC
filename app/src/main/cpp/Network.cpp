@@ -31,6 +31,8 @@ jmethodID   reportVideoFormat_callBack;
 jmethodID   reportAudioFormat_callBack;
 jmethodID   reportVideoData_callBack;
 jmethodID   reportAudioData_callBack;
+jmethodID   reportExam_callBack;
+jmethodID   reportConnected_callBack;
 
 
 void *recvMediaThread(void *obj);
@@ -66,7 +68,7 @@ typedef enum {
 } DebugLog;
 static const char level_char[kDebugLevel + 1] = {'N', 'E', 'W', 'I', 'D'};
 
-#define vmtl_log    true
+#define vmtl_log    false
 
 void myLog(const char *log_module, int level,const char *tag,int line, const char *fmt,va_list ap)
 {
@@ -111,7 +113,7 @@ void redirect_log(const char *log_module, int level,const char *tag,int line, co
  vmtlCbRetVal_t onReportData(void *obj, char *data, int len, outDataDesp_t *desp) {
     Context *cxt = (Context *)obj;
 
-     LOGI("onReportData type is %d",desp->type);
+
 
     JNIEnv *env;
     javaVM->AttachCurrentThread(&env, NULL);
@@ -124,6 +126,8 @@ void redirect_log(const char *log_module, int level,const char *tag,int line, co
         env->CallVoidMethod(javaObj,reportVideoData_callBack, jbuff,len);
     else if(desp->type==kAudio)
         env->CallVoidMethod(javaObj,reportAudioData_callBack, jbuff,len);
+    else if(desp->type==kHid)
+        env->CallVoidMethod(javaObj,reportExam_callBack);
 
     (env)->DeleteLocalRef(jbuff);
 
@@ -151,9 +155,9 @@ void redirect_log(const char *log_module, int level,const char *tag,int line, co
     int size = 8*1024*1024;
     int buf_len = -1;
 
-    setsockopt(sock, SOL_SOCKET, SO_RCVBUF, (const void *)&size, (socklen_t) sizeof(size));
+    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR , (const void *)&size, (socklen_t) sizeof(size));
     socklen_t len = sizeof(buf_len);
-    getsockopt(sock, SOL_SOCKET, SO_RCVBUF, (void *) &buf_len, &len);
+    getsockopt(sock, SOL_SOCKET, SO_REUSEADDR , (void *) &buf_len, &len);
 
 
     struct sockaddr_in addr;
@@ -209,6 +213,8 @@ void _recvThread(Context *cxt, int channel)
 
         //printf("recv %d bytes\n", recv_len);
     }
+
+    LOGI("recv thread exited");
 }
  void* recvMediaThread(void *obj)
 {
@@ -249,10 +255,17 @@ void _recvThread(Context *cxt, int channel)
 }
  void onVmtlEventNotify(void *obj, vmtlNotification_t event, void *data) {
     Context *cxt = (Context *)obj;
+
+    if(cxt->stream_id_!=cxtHid.stream_id_)
+        return;
+    LOGI("vmtl event");
     switch (event) {
         case kConnected:
             cxt->is_vmtl_connected_ = 1;
-
+            JNIEnv *env;
+            javaVM->AttachCurrentThread(&env, NULL);
+            env->CallVoidMethod(javaObj,reportConnected_callBack);
+            LOGI("vmtl event2");
             break;
 
         default:
@@ -262,6 +275,13 @@ void _recvThread(Context *cxt, int channel)
 
  void echoToServer(Context *cxt, int channel)
 {
+    if(cxt->stream_id_==cxtVideo.stream_id_)
+        LOGI("video echo11111111111111");
+    if(cxt->stream_id_==cxtAudio.stream_id_)
+        LOGI("audio echo12222222222222");
+    if(cxt->stream_id_==cxtHid.stream_id_)
+        LOGI("hid echo333333333333333333333");
+
     if( send(cxt->sock_[channel], "ECHO", 4, 0) <= 0 ) {
         LOGE("send ECHO failed, error: %s",strerror(errno));
     } else {
@@ -302,12 +322,13 @@ int initVideo(const char *local_ip,const char *remote_ip,int local_port,int remo
 
     if(cxtVideo.sock_[0]<0||cxtVideo.sock_[1]<0)
     {
-        LOGE("socket create failed");
+       // LOGE("socket create failed`111111");
+        LOGE("socket create failed`111111, error: %s",strerror(errno));
         return -1;
     }
     else
     {
-        LOGI("socket create successfully");
+        LOGI("socket create successfully11111");
     }
 
     echoToServer(&cxtVideo, 0);
@@ -350,12 +371,12 @@ int initAudio(const char *local_ip,const char *remote_ip,int local_port,int remo
 
     if(cxtAudio.sock_[0]<0||cxtAudio.sock_[1]<0)
     {
-        LOGE("socket create failed");
+        LOGE("socket create failed22222222");
         return -1;
     }
     else
     {
-        LOGI("socket create successfully");
+        LOGI("socket create successfully22222");
     }
 
     echoToServer(&cxtAudio, 0);
@@ -394,12 +415,12 @@ int initHid(const char *local_ip,const char *remote_ip,int local_port,int remote
 
     if(cxtHid.sock_[0]<0||cxtHid.sock_[1]<0)
     {
-        LOGE("socket create failed");
+        LOGE("socket create failed3333333333");
         return -1;
     }
     else
     {
-        LOGI("socket create successfully");
+        LOGI("socket create successfully333333333");
     }
 
     echoToServer(&cxtHid, 0);
@@ -419,29 +440,45 @@ int initHid(const char *local_ip,const char *remote_ip,int local_port,int remote
 int stopVideo()
 {
     byeToServer(&cxtVideo,0);
+    byeToServer(&cxtVideo,1);
     cxtVideo.is_recv_thread_start_ = 0;
     cxtVideo.is_vmtl_connected_    = 0;
     vmtl_conn_deactive(cxtVideo.conn_);
     vmtl_release_conn(cxtVideo.conn_);
     vmtl_destroy_stream(cxtVideo.stream_id_);
+
+    if(shutdown(cxtVideo.sock_[0],2)<0)
+        LOGI("socket shutdonw error %s ",strerror(errno));
+    else
+        LOGI("socket shutdonw ok");
+    shutdown(cxtVideo.sock_[1],2);
      return 0;
 }
 int stopAudio()
 {
+    byeToServer(&cxtAudio,0);
+    byeToServer(&cxtAudio,1);
     cxtAudio.is_recv_thread_start_ = 0;
     cxtAudio.is_vmtl_connected_    = 0;
     vmtl_conn_deactive(cxtAudio.conn_);
     vmtl_release_conn(cxtAudio.conn_);
     vmtl_destroy_stream(cxtAudio.stream_id_);
+    shutdown(cxtAudio.sock_[0],2);
+    shutdown(cxtAudio.sock_[1],2);
     return 0;
 }
 int stopHid()
 {
+    byeToServer(&cxtHid,0);
+    byeToServer(&cxtHid,1);
     cxtHid.is_recv_thread_start_ = 0;
     cxtHid.is_vmtl_connected_    = 0;
     vmtl_conn_deactive(cxtHid.conn_);
     vmtl_release_conn(cxtHid.conn_);
     vmtl_destroy_stream(cxtHid.stream_id_);
+
+    shutdown(cxtHid.sock_[0],2);
+    shutdown(cxtHid.sock_[1],2);
     return 0;
 }
 JNIEXPORT jint JNICALL Java_com_vanxum_Aic_NetworkJni_vmtlInit
@@ -460,7 +497,8 @@ JNIEXPORT jint JNICALL Java_com_vanxum_Aic_NetworkJni_vmtlInit
     jclass cls = env->GetObjectClass(obj);
     reportVideoData_callBack   = env->GetMethodID(cls, "reportVideoData", "([BI)V");
     reportAudioData_callBack   = env->GetMethodID(cls, "reportAudioData", "([BI)V");
-
+    reportExam_callBack   = env->GetMethodID(cls, "reportExam", "()V");
+    reportConnected_callBack   = env->GetMethodID(cls, "reportConnected", "()V");
 
 
 
@@ -528,5 +566,14 @@ JNIEXPORT void JNICALL Java_com_vanxum_Aic_NetworkJni_sendInputEvent
 
     vmtl_send_data(cxtHid.conn_, cxtHid.bind_id_, (char *)pBytes, len, &desp);
 
+}
 
+extern "C" JNIEXPORT void JNICALL Java_com_vanxum_Aic_NetworkJni_sendExamPacket
+(JNIEnv *, jobject)
+{
+    vmtlDataDesp_t desp = {0};
+    desp.type = kHid;
+    desp.sub_type = HID_DATA_TYPE_KEYB;
+
+    vmtl_send_data(cxtHid.conn_, cxtHid.bind_id_, (char *)"EXAM", 4, &desp);
 }

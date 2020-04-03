@@ -107,6 +107,9 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
 
     RenderBoard rbAct;
 
+    int dFrame=0;
+    long startm=-1;
+
     public class VideoThread implements Runnable {
         @Override
         public void run() {
@@ -119,7 +122,7 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
             mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, 8000000);
             mediaFormat.setInteger(MediaFormat.KEY_PRIORITY,0);
             mediaFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE,1920*1080);
-            mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE,30);
+            mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE,60);
             mediaFormat.setInteger(MediaFormat.KEY_CHANNEL_COUNT,2);
             mediaFormat.setInteger(MediaFormat.KEY_MAX_WIDTH, 1920);
 
@@ -143,7 +146,7 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
             videoQueue.clear();
             audioQueue.clear();
 
-
+            Log.d("lichao","video decoding thread started");
             while (videoThreahFlag) {
 
                 int inIndex = codec.dequeueInputBuffer(100);
@@ -178,11 +181,23 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
 
                 }
 
+
+
                 int outIndex;
                 {
                     outIndex = codec.dequeueOutputBuffer(outBufferInfo, 100);
                     if (outIndex >= 0) {
                         codec.releaseOutputBuffer(outIndex, true);
+                        if(startm==-1)
+                            startm= System.currentTimeMillis();
+                        dFrame++;
+                        if((System.currentTimeMillis()-startm)>1000)
+                        {
+                            Log.d("frameS","docode fps is %d"+dFrame);
+                            dFrame=0;
+                            startm = System.currentTimeMillis();
+                        }
+
                     }
                     else
                     {
@@ -198,7 +213,9 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
             codec.stop();
             codec.release();
 
-            Log.d("lichao","video decode thread exit");
+            videoQueue.clear();
+
+            Log.d("lichao","video decoding thread exited");
 
 
        //     Intent i=new Intent("render.message");
@@ -258,7 +275,7 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
 
     public void releaseNetwork()
     {
-        NetworkJni.getInstance().stopVmtl();
+        NetworkJni.getInstance().releaseVmtl();
      ;
         if(network!=null)
         {
@@ -307,7 +324,14 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
             frame++;
             lent+=len;
 
-            startMs = System.currentTimeMillis();
+        }
+        if((System.currentTimeMillis()-startMs)>=1000)
+        {
+           // Log.d("frameS","report fps is %d"+frame);
+            rbAct.updateNetinfo(frame,lent);
+            startMs = startMs = System.currentTimeMillis();
+            frame = 0;
+            lent=0;
         }
 
 
@@ -345,6 +369,9 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
 
         if(!init) {
 
+            videoThreahFlag = true;
+            audioThreadFlag = true;
+
 
             videoThread = new Thread(new VideoThread());//
             videoThread.start();
@@ -356,8 +383,9 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
       //      new ConnectTask().execute();
 
 
-            NetworkJni.getInstance().setMr(this);
-            NetworkJni.getInstance().networkVmtlInit(getLocalIp(),ipaddr,20010,port);
+         //   Log.d("lichao","ipaddr is")
+           NetworkJni.getInstance().setMr(this);
+           NetworkJni.getInstance().networkVmtlInit(getLocalIp(),ipaddr,20010,port);
             init = true;
 
         }
@@ -387,11 +415,17 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
     public void surfaceDestroyed(SurfaceHolder surfaceHolder) {
 
         Log.d("lichao","surfaceDestroyed");
-      //  disconnect();
+        disconnect();
 
         init = false;
 
 
+    }
+
+    public void onConnected()
+    {
+        Log.d("lichao","vmtl onConnected");
+        sendHome();
     }
 
     AudioTrack audioTrack=null;
@@ -415,6 +449,7 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
         short[] s_buf = new short[10000];
         int s_len = 0;
 
+        Log.d("lichao","audio decoding thread started");
         while (audioThreadFlag)
         {
 
@@ -434,8 +469,8 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
             }
 
         }
-
-        Log.d("lichao","audio decode thread exit");
+        audioQueue.clear();
+        Log.d("lichao","audio decoding thread exited");
 
 
     }
@@ -487,6 +522,7 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
         int action = event.getActionMasked();
         int x = (int)(event.getX()*xRatio);
         int y = (int)(event.getY()*yRatio);
+
         switch (action){
 
             case MotionEvent.ACTION_DOWN:

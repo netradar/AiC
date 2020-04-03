@@ -14,11 +14,11 @@ public class ConnectManager extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
        setContentView(R.layout.connectivity_main);
-
+/*
         this.requestPermissions(new String[]{
             Manifest.permission.INTERNET
         }, 1);
-
+*/
 
 
 
