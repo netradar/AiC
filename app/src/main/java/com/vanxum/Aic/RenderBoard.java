@@ -190,6 +190,9 @@ public class RenderBoard extends Activity{
         {
             switch (resultCode)
             {
+                case 5:
+                    mainRender.sendPower();
+                    break;
                 case 4:
                     mainRender.sendBack();
                     break;

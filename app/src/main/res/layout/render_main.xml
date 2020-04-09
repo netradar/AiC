@@ -25,22 +25,22 @@
        android:gravity="left"
        android:textColor="@drawable/service_white_control_bg"
        android:textSize="20dp"
-       android:text="999ms" />
+       android:text=" ms" />
       <TextView
           android:id="@+id/net_fps"
           android:layout_width="wrap_content"
           android:layout_height="wrap_content"
           android:gravity="left"
-          android:textColor="#ffffffff"
+          android:textColor="@drawable/service_white_control_bg"
           android:textSize="20dp"
-          android:text="100fps" />
+          android:text=" fps" />
       <TextView
           android:id="@+id/net_speed"
           android:layout_width="wrap_content"
           android:layout_height="wrap_content"
           android:gravity="left"
-          android:textColor="#ffffffff"
+          android:textColor="@drawable/service_white_control_bg"
           android:textSize="20dp"
-          android:text="999k B/s" />
+          android:text=" B/s" />
    </LinearLayout>
 </FrameLayout>

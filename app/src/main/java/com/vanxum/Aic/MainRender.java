@@ -43,9 +43,10 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
     private final static int EV_SYN = 0x00;
     private final static int EV_KEY = 0x01;
     private final static int EV_ABS = 0x03;
-    private final static int KEY_BACK = 0x00ac;
+    private final static int KEY_BACK = 0x009e;
     private final static int KEY_HOME = 0x00ac;
     private final static int KEY_MENU = 0x008b;
+    private final static int KEY_POWER = 0x0074;
 
 
     private final static int ABS_X = 0x00;
@@ -241,6 +242,7 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
         surfaceHolder.addCallback(this);
 
         setOnTouchListener(this);
+
 
 
 
@@ -517,12 +519,8 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
 
     }
 
-
-
-
-
     @Override
-    public boolean onTouch(View view, MotionEvent event) {
+    public boolean onTouchEvent(MotionEvent event) {
         int action = event.getActionMasked();
         int x = (int)(event.getX()*xRatio);
         int y = (int)(event.getY()*yRatio);
@@ -535,7 +533,7 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
 
                 sendInputEvent(action,id1,x,y);
                 break;
-              //     Log.d("lichao1","event is "+action+" x is"+x+" y is "+y);
+            //     Log.d("lichao1","event is "+action+" x is"+x+" y is "+y);
 
 
             case  MotionEvent.ACTION_POINTER_DOWN:
@@ -543,6 +541,9 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
 
                 int count0 = event.getPointerCount();
                 int id = event.getPointerId(event.getActionIndex());
+                int index = event.findPointerIndex(id);
+
+
 
                 if(count0 == 1)
                     sendInputEvent(action,id,x,y);
@@ -550,22 +551,32 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
                 {
                     // for(int i=0;i<count;i++)
                     {
-                        sendPointInputEvent(action,id,(int)(event.getX(id)*xRatio),(int)(event.getY(id)*yRatio));
+                        sendPointInputEvent(action,id,(int)(event.getX(index)*xRatio),(int)(event.getY(index)*yRatio));
                     }
                 }
 
                 break;
-
+            case MotionEvent.ACTION_SCROLL:
+                Log.d("lichao","scroll");
+                break;
             case MotionEvent.ACTION_MOVE:
                 int count = event.getPointerCount();
                 int id2 = event.getPointerId(event.getActionIndex());
+                int index1 = event.findPointerIndex(id2);
+
                 if(count == 1)
                     sendInputEvent(action,id2,x,y);
                 else
                 {
-                   // for(int i=0;i<count;i++)
+
+                    for(int i=0;i<count;i++)
                     {
-                        sendPointInputEvent(action,id2,(int)(event.getX(id2)*xRatio),(int)(event.getY(id2)*yRatio));
+                        int id_t =  event.getPointerId(i);
+                        int index_x = event.findPointerIndex(id_t);
+                        Log.d("lichao", "count is " + count + "              pointer index is " + index_x + "     id is " + id_t);
+                        {
+                            sendPointInputEvent(action, id_t, (int) (event.getX(index_x) * xRatio), (int) (event.getY(index_x) * yRatio));
+                        }
                     }
                 }
 
@@ -576,7 +587,13 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
         return true;
     }
 
-    private void sendMoveInputEvent(int action, int count,int x, int y) {
+    @Override
+    public boolean onTouch(View view, MotionEvent event) {
+        return false;
+    }
+
+    private void sendMoveInputEvent(int action, int count,int x, int y)
+    {
         if(count ==0)
         {
             sendOneInputEvent(EV_ABS,ABS_MT_POSITION_X,x);
@@ -659,9 +676,9 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
 
     }
     public void sendHome() {
-        sendOneInputEvent(EV_KEY,KEY_BACK,0x00000001);
+        sendOneInputEvent(EV_KEY,KEY_HOME,0x00000001);
         sendOneInputEvent(EV_SYN,SYN_REPORT,0x00);
-        sendOneInputEvent(EV_KEY,KEY_BACK,0x00000000);
+        sendOneInputEvent(EV_KEY,KEY_HOME,0x00000000);
         sendOneInputEvent(EV_SYN,SYN_REPORT,0x00);
 
     }
@@ -670,6 +687,15 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
         sendOneInputEvent(EV_SYN,SYN_REPORT,0x00);
         sendOneInputEvent(EV_KEY,KEY_MENU,0x00000000);
         sendOneInputEvent(EV_SYN,SYN_REPORT,0x00);
+
+    }
+    public void sendPower() {
+        sendOneInputEvent(EV_KEY,KEY_POWER,0x00000001);
+        sendOneInputEvent(EV_SYN,SYN_REPORT,0x00);
+        sendOneInputEvent(EV_KEY,KEY_POWER,0x00000000);
+        sendOneInputEvent(EV_SYN,SYN_REPORT,0x00);
+
+
 
     }
 

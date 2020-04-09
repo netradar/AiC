@@ -23,9 +23,14 @@ public class RemoteControl extends Activity {
 
     public void onMenuClick(View v)
     {
+        if(v==findViewById(R.id.sendPower))
+        {
+            setResult(5);
+            finish();
+        }
         if(v==findViewById(R.id.sendBack))
         {
-            setResult(0);
+            setResult(4);
             finish();
         }
         if(v==findViewById(R.id.sendHome))
