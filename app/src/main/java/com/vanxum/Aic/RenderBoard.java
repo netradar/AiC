@@ -64,6 +64,7 @@ public class RenderBoard extends Activity{
         }
     };
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -120,15 +121,8 @@ public class RenderBoard extends Activity{
         imm.showSoftInput(mainRender,InputMethodManager.SHOW_FORCED);*/
 
         timer = new Timer();
-        TimerTask timerTask = new TimerTask() {
-            @Override
-            public void run() {
-                Message message = new Message();
-                message.what = 1;
-                handler.sendMessage(message);
-            }
-        };
-        timer.schedule(timerTask,0,1000);
+
+
 
 
 
@@ -141,6 +135,7 @@ public class RenderBoard extends Activity{
     @Override
     protected void onPause() {
         Log.d("lichao","renderboard onPause");
+        timer.cancel();
         super.onPause();
     }
 
@@ -159,6 +154,16 @@ public class RenderBoard extends Activity{
     @Override
     protected void onResume() {
         Log.d("lichao","renderboard onResume");
+        timer = new Timer();
+        TimerTask timerTask = new TimerTask() {
+            @Override
+            public void run() {
+                Message message = new Message();
+                message.what = 1;
+                handler.sendMessage(message);
+            }
+        };
+        timer.schedule(timerTask,0,1000);
         super.onResume();
     }
 

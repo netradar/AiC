@@ -113,7 +113,7 @@ void redirect_log(const char *log_module, int level,const char *tag,int line, co
  vmtlCbRetVal_t onReportData(void *obj, char *data, int len, outDataDesp_t *desp) {
     Context *cxt = (Context *)obj;
 
-
+  //   LOGE("onReportData!");
 
     JNIEnv *env;
     javaVM->AttachCurrentThread(&env, NULL);
@@ -194,6 +194,7 @@ void _recvThread(Context *cxt, int channel)
         vmtlNotification_t conn_state = vmtl_get_conn_status(cxt->conn_);
         if (conn_state != kConnected && conn_state != kConnecting) { continue; }
 
+    //    if(cxt->conn_!=NULL)
         vmtl_get_sink_buff(cxt->conn_, channel, &sink_buff);
         if (!sink_buff)
         {
@@ -208,7 +209,7 @@ void _recvThread(Context *cxt, int channel)
             continue;
         }
 
-
+        if(cxt->is_recv_thread_start_)
         vmtl_sink_data(cxt->conn_, sink_buff, recv_len, channel, NULL);
 
         //printf("recv %d bytes\n", recv_len);
@@ -220,6 +221,7 @@ void _recvThread(Context *cxt, int channel)
 {
     Context *cxt = (Context *)obj;
 
+    LOGI("recv thread2 %d",syscall(SYS_gettid));
     _recvThread(cxt, 0);
 
     return NULL;
@@ -228,7 +230,7 @@ void _recvThread(Context *cxt, int channel)
  void* recvCtrlThread(void *obj)
 {
     Context *cxt = (Context *)obj;
-
+    LOGI("recv thread %d",syscall(SYS_gettid));
     _recvThread(cxt, 1);
     return NULL;
 }
@@ -247,9 +249,11 @@ void _recvThread(Context *cxt, int channel)
         LOGE("thread error media");
     }
 
+
     if(pthread_create(&ctrl_thread, NULL , recvCtrlThread, (void *)cxt) != 0) {
        LOGE("thread error ctrl");
     }
+
 
     pthread_attr_destroy(&attr);
 }
@@ -264,8 +268,12 @@ void _recvThread(Context *cxt, int channel)
             cxt->is_vmtl_connected_ = 1;
             JNIEnv *env;
             javaVM->AttachCurrentThread(&env, NULL);
-            env->CallVoidMethod(javaObj,reportConnected_callBack);
+      //      env->CallVoidMethod(javaObj,reportConnected_callBack);
             LOGI("vmtl event2");
+
+            vmtl_set_loglevel("info");
+            vmtl_log_redirect(redirect_log);
+
             break;
 
         default:
@@ -331,6 +339,10 @@ int initVideo(const char *local_ip,const char *remote_ip,int local_port,int remo
         LOGI("socket create successfully11111");
     }
 
+   /* byeToServer(&cxtVideo,0);
+    byeToServer(&cxtVideo,1);*/
+    echoToServer(&cxtVideo, 0);
+    echoToServer(&cxtVideo, 1);
     echoToServer(&cxtVideo, 0);
     echoToServer(&cxtVideo, 1);
     createRecvThreads(&cxtVideo);
@@ -379,6 +391,10 @@ int initAudio(const char *local_ip,const char *remote_ip,int local_port,int remo
         LOGI("socket create successfully22222");
     }
 
+  /*  byeToServer(&cxtAudio,0);
+    byeToServer(&cxtAudio,1);*/
+    echoToServer(&cxtAudio, 0);
+    echoToServer(&cxtAudio, 1);
     echoToServer(&cxtAudio, 0);
     echoToServer(&cxtAudio, 1);
     createRecvThreads(&cxtAudio);
@@ -422,7 +438,10 @@ int initHid(const char *local_ip,const char *remote_ip,int local_port,int remote
     {
         LOGI("socket create successfully333333333");
     }
-
+   /* byeToServer(&cxtHid,0);
+    byeToServer(&cxtHid,1);*/
+    echoToServer(&cxtHid, 0);
+    echoToServer(&cxtHid, 1);
     echoToServer(&cxtHid, 0);
     echoToServer(&cxtHid, 1);
     createRecvThreads(&cxtHid);
@@ -439,12 +458,14 @@ int initHid(const char *local_ip,const char *remote_ip,int local_port,int remote
 }
 int stopVideo()
 {
+
     byeToServer(&cxtVideo,0);
     byeToServer(&cxtVideo,1);
     cxtVideo.is_recv_thread_start_ = 0;
     cxtVideo.is_vmtl_connected_    = 0;
     vmtl_conn_deactive(cxtVideo.conn_);
     vmtl_release_conn(cxtVideo.conn_);
+  //  cxtVideo.conn_=NULL;
     vmtl_destroy_stream(cxtVideo.stream_id_);
 
     if(shutdown(cxtVideo.sock_[0],2)<0)
@@ -462,6 +483,7 @@ int stopAudio()
     cxtAudio.is_vmtl_connected_    = 0;
     vmtl_conn_deactive(cxtAudio.conn_);
     vmtl_release_conn(cxtAudio.conn_);
+ //   cxtAudio.conn_=NULL;
     vmtl_destroy_stream(cxtAudio.stream_id_);
     shutdown(cxtAudio.sock_[0],2);
     shutdown(cxtAudio.sock_[1],2);
@@ -475,6 +497,7 @@ int stopHid()
     cxtHid.is_vmtl_connected_    = 0;
     vmtl_conn_deactive(cxtHid.conn_);
     vmtl_release_conn(cxtHid.conn_);
+ //   cxtHid.conn_=NULL;
     vmtl_destroy_stream(cxtHid.stream_id_);
 
     shutdown(cxtHid.sock_[0],2);
@@ -507,7 +530,8 @@ JNIEXPORT jint JNICALL Java_com_vanxum_Aic_NetworkJni_vmtlInit
 
     vmtl_init();
 
-    vmtl_log_redirect(redirect_log);
+
+
     int ver = vmtl_get_vernum();
 
     char ver_string[MAX_VERSION_STRING_LENGTH];
@@ -544,6 +568,7 @@ JNIEXPORT jint JNICALL Java_com_vanxum_Aic_NetworkJni_startVmtl
 JNIEXPORT void JNICALL Java_com_vanxum_Aic_NetworkJni_stopVmtl
         (JNIEnv *, jobject)
 {
+    LOGI("stopVmtl");
     stopVideo();
     stopAudio();
     stopHid();
@@ -564,6 +589,10 @@ JNIEXPORT void JNICALL Java_com_vanxum_Aic_NetworkJni_sendInputEvent
     desp.type = kHid;
     desp.sub_type = HID_DATA_TYPE_MOUSE;
 
+
+    if(!cxtHid.is_vmtl_connected_)
+        return;
+
     vmtl_send_data(cxtHid.conn_, cxtHid.bind_id_, (char *)pBytes, len, &desp);
 
 }
@@ -575,5 +604,8 @@ extern "C" JNIEXPORT void JNICALL Java_com_vanxum_Aic_NetworkJni_sendExamPacket
     desp.type = kHid;
     desp.sub_type = HID_DATA_TYPE_KEYB;
 
+    if(!cxtHid.is_vmtl_connected_)
+        return;
+LOGI("send exam");
     vmtl_send_data(cxtHid.conn_, cxtHid.bind_id_, (char *)"EXAM", 4, &desp);
 }

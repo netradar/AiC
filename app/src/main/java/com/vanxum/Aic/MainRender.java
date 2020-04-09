@@ -143,8 +143,7 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
 
             MediaCodec.BufferInfo outBufferInfo = new MediaCodec.BufferInfo();
 
-            videoQueue.clear();
-            audioQueue.clear();
+
 
             Log.d("lichao","video decoding thread started");
             while (videoThreahFlag) {
@@ -176,7 +175,7 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
                 }
                 else
                 {
-                   Log.e("lichao", "input buffer full,indx is"+inIndex);
+                 //Log.e("lichao", "input buffer full,indx is"+inIndex);
 
 
                 }
@@ -201,7 +200,7 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
                     }
                     else
                     {
-                        Log.d("lichao","out put error");
+                     //   Log.d("lichao","out put error");
                     }
 
 
@@ -291,6 +290,7 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
 
 
 
+
         try {
             videoQueue.put(new byte[4]);
             audioQueue.put(new byte[4]);
@@ -366,6 +366,8 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
         Log.d("lichao","surfaceCreated");
         surfaceHolder = holder;
 
+        videoQueue.clear();
+        audioQueue.clear();
 
         if(!init) {
 
@@ -470,6 +472,8 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
 
         }
         audioQueue.clear();
+
+        audioTrack.release();
         Log.d("lichao","audio decoding thread exited");
 
 
