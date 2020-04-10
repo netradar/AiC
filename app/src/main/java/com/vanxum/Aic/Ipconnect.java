@@ -40,19 +40,6 @@ public class Ipconnect extends Activity implements RadioGroup.OnCheckedChangeLis
         rg.setOnCheckedChangeListener(this);
 
 
-        /*String contacts = settings.getString("contacts","[]");
-        try {
-            JSONArray array = new JSONArray(contacts);
-            JSONObject object;
-            for (int i = 0; i < array.length(); i++) {
-                object = array.getJSONObject(i);
-                Log.e(TAG,"contacts address:" + object.getString("address") + " note:" + object.getString("note"));
-            }
-
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }*/
-
 
 
 
@@ -91,7 +78,7 @@ public class Ipconnect extends Activity implements RadioGroup.OnCheckedChangeLis
 
     @Override
     public void onCheckedChanged(RadioGroup group, int checkedId) {
-        Log.d("lichao"," check id is "+checkedId);
+
         if(group.getCheckedRadioButtonId()==R.id.decode_h264)
         {
             decodeType=0;

@@ -284,14 +284,6 @@ void _recvThread(Context *cxt, int channel)
 
  void echoToServer(Context *cxt, int channel)
 {
-    if(cxt->stream_id_==cxtVideo.stream_id_)
-        LOGI("video echo11111111111111");
-    if(cxt->stream_id_==cxtAudio.stream_id_)
-        LOGI("audio echo12222222222222");
-    if(cxt->stream_id_==cxtHid.stream_id_)
-        LOGI("hid echo333333333333333333333");
-
-
     if(decodeType==0)
     {
         if( send(cxt->sock_[channel], "ECHO+H264", 9, 0) <= 0 ) {

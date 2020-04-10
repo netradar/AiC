@@ -4,8 +4,11 @@ public class NetworkJni
 {
 	private static NetworkJni mInstance=null;
 
-	MainRender mr;
-	RenderBoard rb;
+
+
+
+	dataReportInterface reportInterface;
+	examReportInterface examReport;
 
 	private NetworkJni(){
 
@@ -30,19 +33,19 @@ public class NetworkJni
 
 
 
-	public void setMr(MainRender render)
-	{
-		mr = render;
-	}
-	public void setRb(RenderBoard render)
-	{
-		rb = render;
-	}
 
 	public int networkVmtlInit(String local_ip,String remote_ip,int local_port,int remote_port,int decodeType)
 	{
 		return vmtlInit(local_ip,remote_ip,local_port,remote_port,decodeType);
 
+	}
+	public void setOnDataReportListener(dataReportInterface in)
+    {
+        reportInterface = in;
+    }
+    public void setOnExamReportListener(examReportInterface in)
+	{
+		examReport = in;
 	}
 	public void networkPutMsg(byte[] msg)
 	{
@@ -55,14 +58,14 @@ public class NetworkJni
 
 	void reportVideoData(byte[] data,int len)
 	{
-		mr.reportVideoData(data,len);
+        reportInterface.videoDataReport(data,len);
 	}
 	void reportAudioData(byte[] data,int len)
 	{
-		mr.reportAudioData(data,len);
+        reportInterface.audioDataReport(data,len);
 	}
-	void reportExam(){ rb.onExam();}
-	void reportConnected() {mr.onConnected();}
+	void reportExam(){ examReport.reportExamFeedback();}
+	void reportConnected() {reportInterface.reportConnected();}
 	void releaseVmtl()
 	{
 		stopVmtl();

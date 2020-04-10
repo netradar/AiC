@@ -18,7 +18,7 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
-import android.view.inputmethod.InputMethodManager;
+
 
 import java.io.IOException;
 
@@ -30,13 +30,11 @@ import java.nio.ByteBuffer;
 import java.util.Enumeration;
 import java.util.concurrent.ArrayBlockingQueue;
 
-import static androidx.core.content.ContextCompat.getSystemService;
-import static java.lang.Thread.sleep;
 
 
-public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Runnable,  View.OnTouchListener{
+public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Runnable,dataReportInterface {
     public SurfaceHolder surfaceHolder;
-    private final static String TAG = "MainBackground";
+
     private final static int VIDEO_WIDTH = 1920;
     private final static int VIDEO_HEIGHT = 1080;
 
@@ -64,38 +62,58 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
 
 
     float xRatio,yRatio;
-    NetworkManager network=null;
     String ipaddr;
     int port;
-
     int decodeType = 0;
 
 
-    private ArrayBlockingQueue<byte[]> videoQueue = new ArrayBlockingQueue<>(10000);
+    private ArrayBlockingQueue<byte[]> videoQueue = new ArrayBlockingQueue<>(1000);
     private ArrayBlockingQueue<byte[]> audioQueue = new ArrayBlockingQueue<>(100);
+
+
+
+    public MainRender(Context context, AttributeSet attributeSet) {
+        super(context, attributeSet);
+        init(context);
+    }
+    private boolean init = false;
+
+    private void init(Context context)
+    {
+
+        surfaceHolder = getHolder();
+        surfaceHolder.addCallback(this);
+        rbAct = (RenderBoard)context;
+
+        Point outSize = new Point();
+        WindowManager wm = (WindowManager)context.getSystemService(Context.WINDOW_SERVICE);
+        wm.getDefaultDisplay().getRealSize(outSize);
+        //getWindowManager().getDefaultDisplay().getRealSize(outSize);
+        int x = outSize.x;
+        int y = outSize.y;
+
+        xRatio = (float)VIDEO_WIDTH/x;
+        yRatio = (float)VIDEO_HEIGHT/y;
+
+    }
 
     public void setDecodeType(int i) {
         decodeType = i;
     }
 
+    @Override
+    public void videoDataReport(byte[] data, int len) {
+        reportVideoData(data,len);
+    }
 
-    class ConnectTask extends AsyncTask {
-        @Override
-        protected Object doInBackground(Object[] objects) {
+    @Override
+    public void audioDataReport(byte[] data, int len) {
+        reportAudioData(data,len);
+    }
 
-            try {
-                sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            if(network.connect(ipaddr,10012)<0) {
-                Intent i=new Intent("render.message");
-                i.putExtra("networkerr", true);
-                rbAct.sendBroadcast(i);
-            }
-            return 0;
-
-        }
+    @Override
+    public void reportConnected() {
+        onConnected();
     }
 
     public void setNet(String ip,int p)
@@ -144,10 +162,9 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
                     codec = MediaCodec.createDecoderByType("video/avc");
                 else
                     codec = MediaCodec.createDecoderByType("video/hevc");
-            //    codec = MediaCodec.createDecoderByType("video/avc");
 
             } catch (IOException e) {
-                Log.d("lichao", "codec failed %s" + e.toString());
+                Log.e("lichao", "codec failed %s" + e.toString());
             }
 
             codec.configure(mediaFormat, MainRender.this.surfaceHolder.getSurface(), null, 0);
@@ -190,12 +207,6 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
 
 
                 }
-                else
-                {
-                 //Log.e("lichao", "input buffer full,indx is"+inIndex);
-
-
-                }
 
 
 
@@ -215,10 +226,6 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
                         }
 
                     }
-                    else
-                    {
-                     //   Log.d("lichao","out put error");
-                    }
 
 
                 }
@@ -234,10 +241,6 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
             Log.d("lichao","video decoding thread exited");
 
 
-       //     Intent i=new Intent("render.message");
-       //     i.putExtra("isClose", true);
-        //    rbAct.sendBroadcast(i);
-
         }
     }
 
@@ -245,87 +248,35 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
 
 
 
-    public MainRender(Context context, AttributeSet attributeSet) {
-        super(context, attributeSet);
-        init(context);
-    }
-    private boolean init = false;
-
-    private void init(Context context) {
-
-    Log.d("lichao","mainrender init");
-        surfaceHolder = getHolder();
-        surfaceHolder.addCallback(this);
-
-        setOnTouchListener(this);
-
-
-
-
-
-        //  renderHandler = new RenderHandler(this);
-
-        rbAct = (RenderBoard)context;
-
-
-
-
-
-
-        Point outSize = new Point();
-        WindowManager wm = (WindowManager)context.getSystemService(Context.WINDOW_SERVICE);
-        wm.getDefaultDisplay().getRealSize(outSize);
-        //getWindowManager().getDefaultDisplay().getRealSize(outSize);
-        int x = outSize.x;
-        int y = outSize.y;
-
-        xRatio = (float)VIDEO_WIDTH/x;
-        yRatio = (float)VIDEO_HEIGHT/y;
-
-    }
-
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
-        Log.d("lichao","dispatchKeyEvent");
-        return super.dispatchKeyEvent(event);
+         return super.dispatchKeyEvent(event);
     }
 
     public void releaseNetwork()
     {
         NetworkJni.getInstance().releaseVmtl();
-     ;
-        if(network!=null)
-        {
-            network.closeAll();
-        //    network = null;
-        }
     }
     public void disconnect()
     {
 
         videoThreahFlag = false;
         audioThreadFlag = false;
-
-
-
-
         try {
             videoQueue.put(new byte[4]);
             audioQueue.put(new byte[4]);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
         releaseNetwork();
 
-   //     videoThread.interrupt();
-   //
     }
     boolean cs = false;
-    long startMs;
+    long startMs,startMs1;
     int frame = 0;
     int lent = 0;
     int x=0;
+
     public void reportVideoData(byte[] data,int len)
     {
 
@@ -333,6 +284,7 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
         if(!cs)
         {
              startMs = System.currentTimeMillis();
+            startMs1 = System.currentTimeMillis();
              cs = true;
              frame=1;
              lent=0;
@@ -347,12 +299,13 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
         {
            // Log.d("frameS","report fps is %d"+frame);
             rbAct.updateNetinfo(frame,lent);
-            startMs = startMs = System.currentTimeMillis();
+            startMs = System.currentTimeMillis();
             frame = 0;
             lent=0;
         }
 
-
+        Log.d("lichao","frame interval is "+(System.currentTimeMillis()-startMs1));
+        startMs1 = System.currentTimeMillis();
 
         try {
             videoQueue.put(data);
@@ -363,8 +316,6 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
     }
     public void reportAudioData(byte[] data,int len)
     {
-
-
         try {
             audioQueue.put(data);
         } catch (InterruptedException e) {
@@ -376,9 +327,12 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
     Thread videoThread;
     Thread audioThread;
 
-    public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
+
+    @Override
+    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
 
     }
+
     public void surfaceCreated(SurfaceHolder holder)
     {
         Log.d("lichao","surfaceCreated");
@@ -399,12 +353,7 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
             audioThread = new Thread(this);//
             audioThread.start();
 
-        //    network = new NetworkManager(rbAct);
-      //      new ConnectTask().execute();
-
-
-         //   Log.d("lichao","ipaddr is")
-           NetworkJni.getInstance().setMr(this);
+           NetworkJni.getInstance().setOnDataReportListener(this);
            NetworkJni.getInstance().networkVmtlInit(getLocalIp(),ipaddr,20010,port,decodeType);
             init = true;
 
@@ -434,7 +383,7 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
     @Override
     public void surfaceDestroyed(SurfaceHolder surfaceHolder) {
 
-        Log.d("lichao","surfaceDestroyed");
+
         disconnect();
 
         init = false;
@@ -444,7 +393,6 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
 
     public void onConnected()
     {
-        Log.d("lichao","vmtl onConnected");
         sendHome();
     }
 
@@ -452,8 +400,6 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
     public void run()
     {
         byte[] take;
-
-
         int minBufferSize = AudioTrack.getMinBufferSize(48000,
                  AudioFormat.CHANNEL_OUT_STEREO,
                 AudioFormat.ENCODING_PCM_16BIT);
@@ -490,15 +436,12 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
 
         }
         audioQueue.clear();
-
         audioTrack.release();
+
         Log.d("lichao","audio decoding thread exited");
 
 
     }
-
-
-
 
 
     final static int DOWN = MotionEvent.ACTION_DOWN;
@@ -513,9 +456,6 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
         event.type = type;
         event.code = code;
         event.value = value;
-        if(network!=null)
-            network.putMsg(event);
-
         byte[] msg = new byte[8];
 
 
@@ -572,9 +512,7 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
                 }
 
                 break;
-            case MotionEvent.ACTION_SCROLL:
-                Log.d("lichao","scroll");
-                break;
+
             case MotionEvent.ACTION_MOVE:
                 int count = event.getPointerCount();
                 int id2 = event.getPointerId(event.getActionIndex());
@@ -589,7 +527,7 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
                     {
                         int id_t =  event.getPointerId(i);
                         int index_x = event.findPointerIndex(id_t);
-                        Log.d("lichao", "count is " + count + "              pointer index is " + index_x + "     id is " + id_t);
+                        ;
                         {
                             sendPointInputEvent(action, id_t, (int) (event.getX(index_x) * xRatio), (int) (event.getY(index_x) * yRatio));
                         }
@@ -603,31 +541,9 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
         return true;
     }
 
-    @Override
-    public boolean onTouch(View view, MotionEvent event) {
-        return false;
-    }
 
-    private void sendMoveInputEvent(int action, int count,int x, int y)
-    {
-        if(count ==0)
-        {
-            sendOneInputEvent(EV_ABS,ABS_MT_POSITION_X,x);
-            sendOneInputEvent(EV_ABS,ABS_MT_POSITION_Y,y);
-            sendOneInputEvent(EV_SYN,SYN_REPORT,0x00);
-        }
-        else
-        {
-            for(int i=0;i<count;i++)
-            {
-                sendOneInputEvent(EV_ABS,ABS_MT_POSITION_X,x);
-                sendOneInputEvent(EV_ABS,ABS_MT_POSITION_Y,y);
-                sendOneInputEvent(EV_SYN,SYN_REPORT,0x00);
-            }
-        }
-    }
 
-    public void sendInputEvent(int event,int id,int x,int y)
+    private void sendInputEvent(int event,int id,int x,int y)
     {
 
         if(event == DOWN)
@@ -659,7 +575,7 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
     private void sendPointInputEvent(int event, int actionIndex, int x, int y) {
         if(event == MotionEvent.ACTION_POINTER_DOWN)
         {
-            Log.d("touch","x is "+x+" y is "+y);
+
             sendOneInputEvent(EV_ABS,ABS_MT_SLOT,actionIndex);
             sendOneInputEvent(EV_ABS,ABS_MT_TRACKING_ID,0x01);
             sendOneInputEvent(EV_KEY,BTN_TOUCH,0x01);
@@ -714,6 +630,9 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
 
 
     }
+
+
+
 
 }
 

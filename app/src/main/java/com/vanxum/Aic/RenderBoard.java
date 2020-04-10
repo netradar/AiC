@@ -7,32 +7,19 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.inputmethod.InputMethodManager;
-import android.widget.RadioButton;
-import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
-
 import java.util.Timer;
 import java.util.TimerTask;
 
-import static androidx.core.content.ContextCompat.getSystemService;
+public class RenderBoard extends Activity implements examReportInterface {
 
-
-public class RenderBoard extends Activity {
-  //  private final static String TAG = "com.vanxum.Aic.RenderBoard";
     public MainRender mainRender;
     BroadcastReceiver bdReceiver;
     private IntentFilter ifilter;
@@ -70,7 +57,7 @@ public class RenderBoard extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
-        Log.d("lichao","renderboard onCreate");
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.render_main);
 
@@ -79,9 +66,7 @@ public class RenderBoard extends Activity {
         mainRender.setNet(getIntent().getStringExtra("ipaddr"),getIntent().getIntExtra("port",-1));
         mainRender.setDecodeType(getIntent().getIntExtra("type",0));
 
-
-      //  mainRender.setVisibility(View.GONE);
-        NetworkJni.getInstance().setRb(this);
+        NetworkJni.getInstance().setOnExamReportListener(this);
 
 
    /*     LayoutTransition transition = new LayoutTransition();
@@ -125,40 +110,20 @@ public class RenderBoard extends Activity {
         /*InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         imm.showSoftInput(mainRender,InputMethodManager.SHOW_FORCED);*/
 
-        timer = new Timer();
-
-
-
-
-
-
-
-
-
     }
 
     @Override
     protected void onPause() {
-        Log.d("lichao","renderboard onPause");
+
         timer.cancel();
         super.onPause();
     }
 
-    @Override
-    protected void onStop() {
-        Log.d("lichao","renderboard onStop");
-        super.onStop();
-    }
 
-    @Override
-    protected void onStart() {
-        Log.d("lichao","renderboard onStart");
-        super.onStart();
-    }
 
     @Override
     protected void onResume() {
-        Log.d("lichao","renderboard onResume");
+
         timer = new Timer();
         TimerTask timerTask = new TimerTask() {
             @Override
@@ -180,7 +145,7 @@ public class RenderBoard extends Activity {
         intent.setClass(RenderBoard.this, RemoteControl.class);
 
         startActivityForResult(intent,0);
-      //  mainRender.disconnect();
+
     }
 
 
@@ -218,7 +183,7 @@ public class RenderBoard extends Activity {
 
     @Override
     protected void onDestroy() {
-        Log.d("lichao","renderboard destroyed");
+
         unregisterReceiver(bdReceiver);
         timer.cancel();
         super.onDestroy();
@@ -233,25 +198,16 @@ public class RenderBoard extends Activity {
 
     public void updateNetinfo(int fps,int data)
     {
-
-      //  String s = String.valueOf(fps)+" fps";
-      //      netFps.setText(s);
-
         Message message = new Message();
         message.what = 3;
         message.arg1 = fps;
         message.arg2 = data;
         handler.sendMessage(message);
-     //       netSpeed.setText(data/1000+" KB/s");
-
     }
 
 
     public void onExam()
     {
-      //  String t=String.valueOf(System.currentTimeMillis()-speedMs)+ " ms";
-      //  netDelay.setText(t);
-
         Message message = new Message();
         message.what = 2;
         message.arg1 = (int)(System.currentTimeMillis()-speedMs);
@@ -259,5 +215,8 @@ public class RenderBoard extends Activity {
     }
 
 
-
+    @Override
+    public void reportExamFeedback() {
+        onExam();
+    }
 }
