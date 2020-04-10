@@ -13,11 +13,12 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.RadioGroup;
 import android.widget.Toast;
 
 import com.vanxum.Aic.R;
 
-public class Ipconnect extends Activity {
+public class Ipconnect extends Activity implements RadioGroup.OnCheckedChangeListener {
 
     EditText ipaddr,port;
     @Override
@@ -34,6 +35,10 @@ public class Ipconnect extends Activity {
 
         ipaddr.setText(i);
         port.setText(p);
+
+        RadioGroup rg=(RadioGroup)findViewById(R.id.decode_type);
+        rg.setOnCheckedChangeListener(this);
+
 
         /*String contacts = settings.getString("contacts","[]");
         try {
@@ -54,6 +59,7 @@ public class Ipconnect extends Activity {
     }
 
 
+    int decodeType=0;
     public void onBtnClick(View v)
     {
 
@@ -78,9 +84,24 @@ public class Ipconnect extends Activity {
         Intent intent = new Intent();
         intent.putExtra("ipaddr",sIp);
         intent.putExtra("port",Integer.valueOf(sPort));
+        intent.putExtra("type",decodeType);
         intent.setClass(Ipconnect.this, RenderBoard.class);
         startActivity(intent);
     }
 
+    @Override
+    public void onCheckedChanged(RadioGroup group, int checkedId) {
+        Log.d("lichao"," check id is "+checkedId);
+        if(group.getCheckedRadioButtonId()==R.id.decode_h264)
+        {
+            decodeType=0;
+        }
+        if(group.getCheckedRadioButtonId()==R.id.decode_h265)
+        {
+            decodeType=1;
+        }
+
+
+    }
 
 }

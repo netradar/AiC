@@ -21,7 +21,7 @@ public class NetworkJni
 	 {
 	     System.loadLibrary("network_vmtl");
 	 }
-	public native int vmtlInit(String local_ip,String remote_ip,int local_port,int remote_port);
+	public native int vmtlInit(String local_ip,String remote_ip,int local_port,int remote_port,int decodeType);
 
 	public native int startVmtl(boolean isStart);
 	public native void stopVmtl();
@@ -39,9 +39,9 @@ public class NetworkJni
 		rb = render;
 	}
 
-	public int networkVmtlInit(String local_ip,String remote_ip,int local_port,int remote_port)
+	public int networkVmtlInit(String local_ip,String remote_ip,int local_port,int remote_port,int decodeType)
 	{
-		return vmtlInit(local_ip,remote_ip,local_port,remote_port);
+		return vmtlInit(local_ip,remote_ip,local_port,remote_port,decodeType);
 
 	}
 	public void networkPutMsg(byte[] msg)

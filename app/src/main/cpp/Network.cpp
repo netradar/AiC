@@ -57,6 +57,7 @@ typedef struct {
 Context cxtHid;
 Context cxtVideo;
 Context cxtAudio;
+int decodeType;
 #define SESSION_ID 0x327
 
 typedef enum {
@@ -268,7 +269,7 @@ void _recvThread(Context *cxt, int channel)
             cxt->is_vmtl_connected_ = 1;
             JNIEnv *env;
             javaVM->AttachCurrentThread(&env, NULL);
-      //      env->CallVoidMethod(javaObj,reportConnected_callBack);
+            env->CallVoidMethod(javaObj,reportConnected_callBack);
             LOGI("vmtl event2");
 
             vmtl_set_loglevel("info");
@@ -290,10 +291,22 @@ void _recvThread(Context *cxt, int channel)
     if(cxt->stream_id_==cxtHid.stream_id_)
         LOGI("hid echo333333333333333333333");
 
-    if( send(cxt->sock_[channel], "ECHO", 4, 0) <= 0 ) {
-        LOGE("send ECHO failed, error: %s",strerror(errno));
-    } else {
-        LOGI("channel %d ECHO to server", channel);
+
+    if(decodeType==0)
+    {
+        if( send(cxt->sock_[channel], "ECHO+H264", 9, 0) <= 0 ) {
+            LOGE("send ECHO failed, error: %s",strerror(errno));
+        } else {
+            LOGI("channel %d ECHO to server", channel);
+        }
+    }
+    else
+        {
+        if (send(cxt->sock_[channel], "ECHO+H265", 9, 0) <= 0) {
+            LOGE("send ECHO failed, error: %s", strerror(errno));
+        } else {
+            LOGI("channel %d ECHO to server", channel);
+        }
     }
 }
  void byeToServer(Context *cxt, int channel)
@@ -505,7 +518,7 @@ int stopHid()
     return 0;
 }
 JNIEXPORT jint JNICALL Java_com_vanxum_Aic_NetworkJni_vmtlInit
-  (JNIEnv * env, jobject obj, jstring local_ip_,jstring remote_ip_, jint local_port,jint remote_port)
+  (JNIEnv * env, jobject obj, jstring local_ip_,jstring remote_ip_, jint local_port,jint remote_port,jint decodeType_)
 {
     const char *local_ip = env->GetStringUTFChars(local_ip_, 0);
     const char *remote_ip = env->GetStringUTFChars(remote_ip_, 0);
@@ -525,7 +538,7 @@ JNIEXPORT jint JNICALL Java_com_vanxum_Aic_NetworkJni_vmtlInit
 
 
 
-
+    decodeType = decodeType_;
 
 
     vmtl_init();

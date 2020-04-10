@@ -68,12 +68,15 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
     String ipaddr;
     int port;
 
-
+    int decodeType = 0;
 
 
     private ArrayBlockingQueue<byte[]> videoQueue = new ArrayBlockingQueue<>(10000);
     private ArrayBlockingQueue<byte[]> audioQueue = new ArrayBlockingQueue<>(100);
 
+    public void setDecodeType(int i) {
+        decodeType = i;
+    }
 
 
     class ConnectTask extends AsyncTask {
@@ -116,8 +119,16 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
         public void run() {
 
             MediaCodec codec = null;
-            MediaFormat mediaFormat = MediaFormat.createVideoFormat("video/avc",1920,1080);
-            mediaFormat.setString("mime", "video/avc");
+            MediaFormat mediaFormat;
+            if(decodeType==0)
+            {
+                mediaFormat = MediaFormat.createVideoFormat("video/avc",1920,1080);
+                mediaFormat.setString("mime", "video/avc");
+            }
+            else {
+                mediaFormat = MediaFormat.createVideoFormat("video/hevc", 1920, 1080);
+                mediaFormat.setString("mime", "video/hevc");
+            }
 
             mediaFormat.setInteger(MediaFormat.KEY_MAX_HEIGHT, 1080);
             mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, 8000000);
@@ -128,7 +139,12 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
             mediaFormat.setInteger(MediaFormat.KEY_MAX_WIDTH, 1920);
 
             try {
-               codec = MediaCodec.createDecoderByType("video/avc");
+
+                if(decodeType==0)
+                    codec = MediaCodec.createDecoderByType("video/avc");
+                else
+                    codec = MediaCodec.createDecoderByType("video/hevc");
+            //    codec = MediaCodec.createDecoderByType("video/avc");
 
             } catch (IOException e) {
                 Log.d("lichao", "codec failed %s" + e.toString());
@@ -389,7 +405,7 @@ public class MainRender extends SurfaceView implements SurfaceHolder.Callback,Ru
 
          //   Log.d("lichao","ipaddr is")
            NetworkJni.getInstance().setMr(this);
-           NetworkJni.getInstance().networkVmtlInit(getLocalIp(),ipaddr,20010,port);
+           NetworkJni.getInstance().networkVmtlInit(getLocalIp(),ipaddr,20010,port,decodeType);
             init = true;
 
         }

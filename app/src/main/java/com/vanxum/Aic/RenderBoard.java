@@ -18,6 +18,8 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -29,7 +31,7 @@ import java.util.TimerTask;
 import static androidx.core.content.ContextCompat.getSystemService;
 
 
-public class RenderBoard extends Activity{
+public class RenderBoard extends Activity {
   //  private final static String TAG = "com.vanxum.Aic.RenderBoard";
     public MainRender mainRender;
     BroadcastReceiver bdReceiver;
@@ -75,9 +77,12 @@ public class RenderBoard extends Activity{
         mainRender = (MainRender) findViewById(R.id.main_background1);
 
         mainRender.setNet(getIntent().getStringExtra("ipaddr"),getIntent().getIntExtra("port",-1));
+        mainRender.setDecodeType(getIntent().getIntExtra("type",0));
+
 
       //  mainRender.setVisibility(View.GONE);
         NetworkJni.getInstance().setRb(this);
+
 
    /*     LayoutTransition transition = new LayoutTransition();
         ObjectAnimator animIn = ObjectAnimator.ofFloat(null, "alpha", 0, 1);
@@ -252,6 +257,7 @@ public class RenderBoard extends Activity{
         message.arg1 = (int)(System.currentTimeMillis()-speedMs);
         handler.sendMessage(message);
     }
+
 
 
 }
